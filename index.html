@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en" data-bs-theme="dark">
+  <head>
+
+    <link href="./css/bootstrap.min.css" rel="stylesheet">
+    <link href="./css/main.css" rel="stylesheet">
+    <script defer type="module" src="./js/bootstrap.bundle.min.js"></script>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>YTNT</title>
+  </head>
+  <body>
+
+    <nav class="navbar bg-body-tertiary">
+      <div class="container-fluid">
+        <span class="navbar-brand flex-grow-1">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-play" viewBox="0 0 16 16">
+            <path d="M10.804 8 5 4.633v6.734zm.792-.696a.802.802 0 0 1 0 1.392l-6.363 3.692C4.713 12.69 4 12.345 4 11.692V4.308c0-.653.713-.998 1.233-.696z"/>
+          </svg>
+          YTNT
+        </span>
+
+        <div class="d-flex">
+        <div class="input-group">
+          <input disabled id="loadVideoText" type="text" class="form-control" placeholder="Enter YouTube URL" aria-label="Enter YouTube URL" aria-describedby="loadVideoButton">
+          <button class="btn btn-outline-secondary disabled" type="button" id="loadVideoButton" style="width: 125px;">
+            Load Video
+          </button>
+        </div>
+      </div>
+
+      </div>
+    </nav>
+
+    <div id="introText" class="px-4 py-5 my-5 text-center">
+      <h1 class="display-5 fw-bold text-body-emphasis">YT NoteTaker</h1>
+      <div class="col-lg-6 mx-auto">
+        <p class="lead mb-4">
+          Take notes while watching a YouTube video and control playback with keyboard shortcuts.
+        </p>
+        <p>
+          Paste a YouTube URL up there to start
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-up-right" viewBox="0 0 16 16">
+            <path fill-rule="evenodd" d="M14 2.5a.5.5 0 0 0-.5-.5h-6a.5.5 0 0 0 0 1h4.793L2.146 13.146a.5.5 0 0 0 .708.708L13 3.707V8.5a.5.5 0 0 0 1 0z"/>
+          </svg>
+        </p>
+        <p>
+          <div class="alert alert-danger" role="alert">
+            Warning, currently WIP - Notes cannot be exported/saved, CSS bugs etc.
+          </div>
+        </p>
+      </div>
+    </div>
+
+    <div id="vidAndEditor" class="container" style="display: none;">
+      <div class="row">
+        <div class="col-12 col-md-6">
+          <div class="video-container">
+            <div id="player"></div>
+          </div>
+        </div>
+        <div class="col-12 col-md-6" style="overflow: auto;">
+          <div id="editorjs"></div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="navbar fixed-bottom bg-body-tertiary">
+      <div class="container-fluid fw-lighter d-flex justify-content-end">
+        <div style="margin-right: 10px;">
+          Keyboard Shortcuts: ⌥ 1 = 
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-play" viewBox="0 0 16 16">
+            <path d="M10.804 8 5 4.633v6.734zm.792-.696a.802.802 0 0 1 0 1.392l-6.363 3.692C4.713 12.69 4 12.345 4 11.692V4.308c0-.653.713-.998 1.233-.696z"/>
+          </svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pause" viewBox="0 0 16 16">
+            <path d="M6 3.5a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-1 0V4a.5.5 0 0 1 .5-.5m4 0a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-1 0V4a.5.5 0 0 1 .5-.5"/>
+          </svg>
+          
+          , ⌥ 2 = 
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-rewind" viewBox="0 0 16 16">
+            <path d="M9.196 8 15 4.633v6.734zm-.792-.696a.802.802 0 0 0 0 1.392l6.363 3.692c.52.302 1.233-.043 1.233-.696V4.308c0-.653-.713-.998-1.233-.696z"/>
+            <path d="M1.196 8 7 4.633v6.734zm-.792-.696a.802.802 0 0 0 0 1.392l6.363 3.692c.52.302 1.233-.043 1.233-.696V4.308c0-.653-.713-.998-1.233-.696z"/>
+          </svg>
+           10s, ⌥ 3 = 
+           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-rewind" viewBox="0 0 16 16">
+            <path d="M9.196 8 15 4.633v6.734zm-.792-.696a.802.802 0 0 0 0 1.392l6.363 3.692c.52.302 1.233-.043 1.233-.696V4.308c0-.653-.713-.998-1.233-.696z"/>
+            <path d="M1.196 8 7 4.633v6.734zm-.792-.696a.802.802 0 0 0 0 1.392l6.363 3.692c.52.302 1.233-.043 1.233-.696V4.308c0-.653-.713-.998-1.233-.696z"/>
+          </svg>
+           30s, ⌥ 4 = 
+           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-fast-forward" viewBox="0 0 16 16">
+            <path d="M6.804 8 1 4.633v6.734zm.792-.696a.802.802 0 0 1 0 1.392l-6.363 3.692C.713 12.69 0 12.345 0 11.692V4.308c0-.653.713-.998 1.233-.696z"/>
+            <path d="M14.804 8 9 4.633v6.734zm.792-.696a.802.802 0 0 1 0 1.392l-6.363 3.692C8.713 12.69 8 12.345 8 11.692V4.308c0-.653.713-.998 1.233-.696z"/>
+          </svg>
+           5s
+        </div>
+        <div>
+          <a class="btn btn-sm btn-outline-secondary" href="https://github.com/kavinaidoo/ytnt">GitHub</a>
+        </div>
+        <div style="margin-left: 10px;">🐞</div>
+      </div>
+    </nav>
+
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script src="./js/editorjs.umd.min.js"></script>
+    <script src="./js/header.umd.js"></script>
+    <script src="./js/paragraph.umd.js"></script>
+    <script src="./js/editorjs-list.umd.js"></script>
+    <script src="./js/editorjs-undo.bundle.min.js"></script>
+    <script src="./js/script.js"></script>
+  </body>
+</html>
