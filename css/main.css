@@ -1,3 +1,7 @@
+body {
+  overflow: hidden;
+}
+
 .bi {
   display:inline-block;
   vertical-align: -.125em;
@@ -41,13 +45,9 @@ body {
   color: black;
 }
 
-#vidAndEditor{
-  height: calc(100vh - 300px); /* 100vh - (header + footer) */
-}
-
 .video-container {
   position: relative;
-  padding-bottom: 56.25%; /* 16:9 aspect ratio */
+  padding-bottom: 56.25%;
   height: 0;
   overflow: hidden;
   max-width: 100%;
@@ -60,4 +60,52 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
+} 
+
+#offCanvasMobileDevice {
+  border-right: 0;
+  border-left: 0;
+  width: 100%;
+}
+
+.main-container {
+  height: calc(100vh - 105px); /* Adjust for header and footer */
+  overflow: hidden;
+}
+
+.column-a {
+  height: 100%;
+  overflow: hidden; /* No scrolling for Column A */
+  display: flex;
+  flex-direction: column;
+}
+
+.column-b {
+  height: 100%;
+  overflow-y: auto; /* Allow scrolling for Column B */
+}
+
+#editorjs {
+  min-height: 100%;
+  padding: 15px;
+}
+
+.gray {
+  color:rgb(132, 132, 132);
+}
+
+@keyframes pulse-once {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.pulse-once {
+  animation: pulse-once 0.3s ease-in-out;
 }

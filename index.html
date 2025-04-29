@@ -4,12 +4,10 @@
 
     <link href="./css/bootstrap.min.css" rel="stylesheet">
     <link href="./css/main.css" rel="stylesheet">
-    <script defer type="module" src="./js/bootstrap.bundle.min.js"></script>
-
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-
     <title>YTNT</title>
+
   </head>
   <body>
 
@@ -21,16 +19,14 @@
           </svg>
           YTNT
         </span>
-
         <div class="d-flex">
-        <div class="input-group">
-          <input disabled id="loadVideoText" type="text" class="form-control" placeholder="Enter YouTube URL" aria-label="Enter YouTube URL" aria-describedby="loadVideoButton">
-          <button class="btn btn-outline-secondary disabled" type="button" id="loadVideoButton" style="width: 125px;">
-            Load Video
-          </button>
+          <div class="input-group">
+            <input disabled id="loadVideoText" type="text" class="form-control" placeholder="Paste YouTube URL" aria-label="Enter YouTube URL" aria-describedby="loadVideoButton">
+            <button class="btn btn-outline-secondary disabled" type="button" id="loadVideoButton" style="width: 125px;">
+              Load Video
+            </button>
+          </div>
         </div>
-      </div>
-
       </div>
     </nav>
 
@@ -38,30 +34,82 @@
       <h1 class="display-5 fw-bold text-body-emphasis">YT NoteTaker</h1>
       <div class="col-lg-6 mx-auto">
         <p class="lead mb-4">
-          Take notes while watching a YouTube video and control playback with keyboard shortcuts.
+          Easily take notes while watching a YouTube video.<br>
+          Simultaneously type and control playback with keyboard shortcuts.<br>
+          Export to Word (.docx) when you're done.
         </p>
-        <p>
+        <p class="lead mb-4">
           Paste a YouTube URL up there to start
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-up-right" viewBox="0 0 16 16">
             <path fill-rule="evenodd" d="M14 2.5a.5.5 0 0 0-.5-.5h-6a.5.5 0 0 0 0 1h4.793L2.146 13.146a.5.5 0 0 0 .708.708L13 3.707V8.5a.5.5 0 0 0 1 0z"/>
           </svg>
+          <br>
         </p>
         <p>
-          <div class="alert alert-danger" role="alert">
-            Warning, currently WIP - Notes cannot be exported/saved, CSS bugs etc.
+          <div class="alert alert-warning" role="alert">
+            YTNT is a work-in-progress, functionality may change/break at any time.
           </div>
         </p>
       </div>
     </div>
 
-    <div id="vidAndEditor" class="container" style="display: none;">
-      <div class="row">
-        <div class="col-12 col-md-6">
+    <div id="vidAndEditor" class="container-fluid main-container" style="display: none;">
+      <div class="row h-100">
+        <div class="col-md-6 column-a p-3"> <!-- Left Column -->
           <div class="video-container">
             <div id="player"></div>
           </div>
+
+          <div class="btn-group" role="group" aria-label="controls" style="margin-top: 12px;">
+            <button id="playPauseButton" type="button" class="btn btn-outline-light">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-play-btn" viewBox="0 0 16 16">
+                <path d="M6.79 5.093A.5.5 0 0 0 6 5.5v5a.5.5 0 0 0 .79.407l3.5-2.5a.5.5 0 0 0 0-.814z"/>
+                <path d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2zm15 0a1 1 0 0 0-1-1H2a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1z"/>
+              </svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pause-btn" viewBox="0 0 16 16">
+                <path d="M6.25 5C5.56 5 5 5.56 5 6.25v3.5a1.25 1.25 0 1 0 2.5 0v-3.5C7.5 5.56 6.94 5 6.25 5m3.5 0c-.69 0-1.25.56-1.25 1.25v3.5a1.25 1.25 0 1 0 2.5 0v-3.5C11 5.56 10.44 5 9.75 5"/>
+                <path d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2zm15 0a1 1 0 0 0-1-1H2a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1z"/>
+              </svg>
+              <span class="gray fs-6" style="margin-left: 10px;">⌥ 1<span>
+            </button>
+            <button id="back10Button" type="button" class="btn btn-outline-light">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-rewind-btn" viewBox="0 0 16 16">
+                <path d="M7.21 5.093A.5.5 0 0 1 8 5.5v1.886l3.21-2.293A.5.5 0 0 1 12 5.5v5a.5.5 0 0 1-.79.407L8 8.614V10.5a.5.5 0 0 1-.79.407l-3.5-2.5a.5.5 0 0 1 0-.814z"/>
+                <path d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2zm15 0a1 1 0 0 0-1-1H2a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1z"/>
+              </svg>
+              10s
+              <span class="gray fs-6" style="margin-left: 10px;">⌥ 2<span>
+            </button>
+            <button id="back30Button"type="button" class="btn btn-outline-light">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-rewind-btn" viewBox="0 0 16 16">
+                <path d="M7.21 5.093A.5.5 0 0 1 8 5.5v1.886l3.21-2.293A.5.5 0 0 1 12 5.5v5a.5.5 0 0 1-.79.407L8 8.614V10.5a.5.5 0 0 1-.79.407l-3.5-2.5a.5.5 0 0 1 0-.814z"/>
+                <path d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2zm15 0a1 1 0 0 0-1-1H2a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1z"/>
+              </svg>
+              30s
+              <span class="gray fs-6" style="margin-left: 10px;">⌥ 3<span>
+            </button>
+            <button id="forward5Button"type="button" class="btn btn-outline-light">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-fast-forward-btn" viewBox="0 0 16 16">
+                <path d="M8.79 5.093A.5.5 0 0 0 8 5.5v1.886L4.79 5.093A.5.5 0 0 0 4 5.5v5a.5.5 0 0 0 .79.407L8 8.614V10.5a.5.5 0 0 0 .79.407l3.5-2.5a.5.5 0 0 0 0-.814z"/>
+                <path d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2zm15 0a1 1 0 0 0-1-1H2a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1z"/>
+              </svg>
+              5s
+              <span class="gray fs-6" style="margin-left: 10px;">⌥ 4<span>
+            </button>
+
+          </div>
+
+          <div class="btn-group" role="group" aria-label="controls" style="margin-top: 12px;">
+            <button id="downloadDOCXButton" class="btn btn-outline-secondary">
+              Download Notes in Word (.docx) Format
+            </button>
+            <button id="clearNotesButton" class="btn btn-outline-secondary">
+              Clear Notes
+            </button>
+          </div>
+
         </div>
-        <div class="col-12 col-md-6" style="overflow: auto;">
+        <div class="col-md-6 column-b p-3"> <!-- Right Column -->
           <div id="editorjs"></div>
         </div>
       </div>
@@ -69,38 +117,35 @@
 
     <nav class="navbar fixed-bottom bg-body-tertiary">
       <div class="container-fluid fw-lighter d-flex justify-content-end">
-        <div style="margin-right: 10px;">
-          Keyboard Shortcuts: ⌥ 1 = 
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-play" viewBox="0 0 16 16">
-            <path d="M10.804 8 5 4.633v6.734zm.792-.696a.802.802 0 0 1 0 1.392l-6.363 3.692C4.713 12.69 4 12.345 4 11.692V4.308c0-.653.713-.998 1.233-.696z"/>
-          </svg>
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pause" viewBox="0 0 16 16">
-            <path d="M6 3.5a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-1 0V4a.5.5 0 0 1 .5-.5m4 0a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-1 0V4a.5.5 0 0 1 .5-.5"/>
-          </svg>
-          
-          , ⌥ 2 = 
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-rewind" viewBox="0 0 16 16">
-            <path d="M9.196 8 15 4.633v6.734zm-.792-.696a.802.802 0 0 0 0 1.392l6.363 3.692c.52.302 1.233-.043 1.233-.696V4.308c0-.653-.713-.998-1.233-.696z"/>
-            <path d="M1.196 8 7 4.633v6.734zm-.792-.696a.802.802 0 0 0 0 1.392l6.363 3.692c.52.302 1.233-.043 1.233-.696V4.308c0-.653-.713-.998-1.233-.696z"/>
-          </svg>
-           10s, ⌥ 3 = 
-           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-rewind" viewBox="0 0 16 16">
-            <path d="M9.196 8 15 4.633v6.734zm-.792-.696a.802.802 0 0 0 0 1.392l6.363 3.692c.52.302 1.233-.043 1.233-.696V4.308c0-.653-.713-.998-1.233-.696z"/>
-            <path d="M1.196 8 7 4.633v6.734zm-.792-.696a.802.802 0 0 0 0 1.392l6.363 3.692c.52.302 1.233-.043 1.233-.696V4.308c0-.653-.713-.998-1.233-.696z"/>
-          </svg>
-           30s, ⌥ 4 = 
-           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-fast-forward" viewBox="0 0 16 16">
-            <path d="M6.804 8 1 4.633v6.734zm.792-.696a.802.802 0 0 1 0 1.392l-6.363 3.692C.713 12.69 0 12.345 0 11.692V4.308c0-.653.713-.998 1.233-.696z"/>
-            <path d="M14.804 8 9 4.633v6.734zm.792-.696a.802.802 0 0 1 0 1.392l-6.363 3.692C8.713 12.69 8 12.345 8 11.692V4.308c0-.653.713-.998 1.233-.696z"/>
-          </svg>
-           5s
-        </div>
         <div>
-          <a class="btn btn-sm btn-outline-secondary" href="https://github.com/kavinaidoo/ytnt">GitHub</a>
+          <a class="btn btn-sm btn-outline-secondary" href="https://kavi.sblmnl.co.za/contact/" target="_blank">Contact</a>
+        </div>
+        <div style="margin-left: 10px;">
+          <a class="btn btn-sm btn-outline-secondary" href="https://github.com/kavinaidoo/ytnt" target="_blank">GitHub</a>
         </div>
         <div style="margin-left: 10px;">🐞</div>
       </div>
     </nav>
+
+    <!-- OffCanvas Mobile Device Start -->
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="offCanvasMobileDevice" aria-labelledby="offCanvasMobileDeviceLabel" style="z-index: 1998;">
+      <div class="offcanvas-header offCanvasOpaqueHeader">
+        <h5 class="offcanvas-title fw-lighter"> 
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-play" viewBox="0 0 16 16">
+            <path d="M10.804 8 5 4.633v6.734zm.792-.696a.802.802 0 0 1 0 1.392l-6.363 3.692C4.713 12.69 4 12.345 4 11.692V4.308c0-.653.713-.998 1.233-.696z"/>
+          </svg>
+          YTNT
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+      </div>
+      <div class="offcanvas-body">
+        <div class="position-absolute top-50 start-50 translate-middle text-nowrap fs-4 text-center fw-lighter">
+          YT NoteTaker is designed<br>
+          for use on PCs and Laptops
+        </div> 
+      </div>
+    </div>
+    <!-- OffCanvas Mobile Device End -->
 
     <script src="https://www.youtube.com/iframe_api"></script>
     <script src="./js/editorjs.umd.min.js"></script>
@@ -108,6 +153,9 @@
     <script src="./js/paragraph.umd.js"></script>
     <script src="./js/editorjs-list.umd.js"></script>
     <script src="./js/editorjs-undo.bundle.min.js"></script>
+    <script src="./js/edjsHTML.browser.js"></script>
+    <script src="./js/docx.min.js"></script>
+    <script src="./js/bootstrap.bundle.min.js"></script>
     <script src="./js/script.js"></script>
   </body>
 </html>
