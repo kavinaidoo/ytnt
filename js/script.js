@@ -197,6 +197,11 @@ if (/Android|iPhone|iPad/i.test(navigator.userAgent) || window.innerWidth <= 768
   offCanvasMobileDeviceBootstrap.show() // detecting mobile devices
 }
 
+const tag = document.createElement('script');
+tag.src = `https://www.youtube.com/iframe_api?ts=${new Date().getTime()}`;
+const firstScriptTag = document.getElementsByTagName('script')[0];
+firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
 // Events
 
 loadVideoButtonElement.addEventListener('click', () => {
@@ -246,7 +251,13 @@ downloadDOCXButtonElement.addEventListener('click', async () => {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'document.docx';
+  var fileName = ""
+  try {
+    filename = 'YTNT - '+player.getVideoData().author + ' - ' + player.getVideoData().title
+  } catch {
+    filename = 'YTNT'
+  }
+  a.download = filename+'.docx';
   a.click();
   URL.revokeObjectURL(url);
 })
@@ -293,7 +304,7 @@ const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecogni
 
 async function speechRecognitionPermissions(){
   if (!SpeechRecognition) {
-    document.getElementById('interimTranscript').innerText = 'Your browser does not support Voice Transcription. Try using Chrome or Edge. (Web Speech API not supported)'
+    document.getElementById('interimTranscript').innerText = 'Your browser does not support Speech-to-Text. Try using Chrome or Edge. (Web Speech API not supported)'
     var requestVoicePermissionButtonElement =  document.getElementById('requestVoicePermissionButton')
     requestVoicePermissionButtonElement.style = 'display:none'
   } else {
@@ -302,12 +313,12 @@ async function speechRecognitionPermissions(){
     var permissionStatus = permissionStatusObject.state
 
     if (permissionStatus == 'denied'){
-      document.getElementById('interimTranscript').innerHTML = 'Voice Transcription uses your browser and device microphone to convert speech to text. Ensure that the video is playing loudly enough that your device can "hear" it. It will also convert your own speech. This is an experimental feature.<br><br>Allow the Microphone permission in your browser settings and reload the page to use this feature.'
+      document.getElementById('interimTranscript').innerHTML = 'Speech-to-Text uses your browser and device microphone to convert speech to text. Ensure that the video is playing loudly enough that your device can "hear" it. It will also convert your own speech. This is an experimental feature.<br><br>Allow the Microphone permission in your browser settings and reload the page to use this feature.'
       document.getElementById('requestVoicePermissionButton').style = 'display:none'
     } else if (permissionStatus == 'prompt'){
-      document.getElementById('interimTranscript').innerHTML = 'Voice Transcription uses your browser and device microphone to convert speech to text. Ensure that the video is playing loudly enough that your device can "hear" it. It will also convert your own speech. This is an experimental feature.<br><br>Click "Request Microphone Permission" and allow to use this feature.'
+      document.getElementById('interimTranscript').innerHTML = 'Speech-to-Text uses your browser and device microphone to convert speech to text. Ensure that the video is playing loudly enough that your device can "hear" it. It will also convert your own speech. This is an experimental feature.<br><br>Click "Request Microphone Permission" and allow to use this feature.'
       document.getElementById('voiceTransToggle').disabled = true;
-      document.getElementById('voiceTransToggleText').innerText = 'Voice Transcription Disabled'
+      document.getElementById('voiceTransToggleText').innerText = 'Speech-to-Text Disabled'
 
       var requestVoicePermissionButtonElement =  document.getElementById('requestVoicePermissionButton')
       
@@ -316,20 +327,20 @@ async function speechRecognitionPermissions(){
           const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
           requestVoicePermissionButtonElement.style = 'display:none'
           console.log('Microphone access granted');
-          document.getElementById('interimTranscript').innerText = 'Voice Transcription uses your browser and device microphone to convert speech to text. Ensure that the video is playing loudly enough that your device can "hear" it. It will also convert your own speech.'
+          document.getElementById('interimTranscript').innerText = 'Speech-to-Text uses your browser and device microphone to convert speech to text. Ensure that the video is playing loudly enough that your device can "hear" it. It will also convert your own speech.'
           document.getElementById('voiceTransToggle').disabled = false;
-          document.getElementById('voiceTransToggleText').innerText = 'Voice Transcription Off'
+          document.getElementById('voiceTransToggleText').innerHTML = 'Speech-to-Text Off <span class="gray">⌥5<span>'
         } catch (error) {
           console.error('Error requesting microphone permission:', error);
-          document.getElementById('interimTranscript').innerHTML = 'Voice Transcription uses your browser and device microphone to convert speech to text. Ensure that the video is playing loudly enough that your device can "hear" it. It will also convert your own speech. This is an experimental feature.<br><br>Allow the Microphone permission in your browser settings and reload the page to use this feature.'
+          document.getElementById('interimTranscript').innerHTML = 'Speech-to-Text uses your browser and device microphone to convert speech to text. Ensure that the video is playing loudly enough that your device can "hear" it. It will also convert your own speech. This is an experimental feature.<br><br>Allow the Microphone permission in your browser settings and reload the page to use this feature.'
           document.getElementById('requestVoicePermissionButton').style = 'display:none'
         }
       })
 
     } else {
-      document.getElementById('interimTranscript').innerText = 'Voice Transcription uses your browser and device microphone to convert speech to text. Ensure that the video is playing loudly enough that your device can "hear" it. It will also convert your own speech. This is an experimental feature.'
+      document.getElementById('interimTranscript').innerText = 'Speech-to-Text uses your browser and device microphone to convert speech to text. Ensure that the video is playing loudly enough that your device can "hear" it. It will also convert your own speech. This is an experimental feature.'
       document.getElementById('voiceTransToggle').disabled = false;
-      document.getElementById('voiceTransToggleText').innerText = 'Voice Transcription Off'
+      document.getElementById('voiceTransToggleText').innerHTML = 'Speech-to-Text Off <span class="gray">⌥5<span>'
       var requestVoicePermissionButtonElement =  document.getElementById('requestVoicePermissionButton')
       requestVoicePermissionButtonElement.style = 'display:none'
     }
@@ -350,16 +361,52 @@ if (SpeechRecognition) {
 
   voiceTransToggleElement.addEventListener('click', () => {
     if(voiceTransToggleElement.checked){
-      document.getElementById('voiceTransToggleText').innerText = 'Voice Transcription On'
+      document.getElementById('voiceTransToggleText').innerHTML = 'Speech-to-Text On <span class="gray">⌥5<span>'
       recognition.start();
       transcriptDiv.textContent = 'Listening to device microphone...';
       userStopped = false
     } else {
-      document.getElementById('voiceTransToggleText').innerText = 'Voice Transcription Off'
+      document.getElementById('voiceTransToggleText').innerHTML = 'Speech-to-Text Off <span class="gray">⌥5<span>'
       userStopped = true
       recognition.stop();
+      transcriptDiv.textContent = 'Stopped listening to device microphone.';
     }
   })
+
+  function pushTranscriptToEditor(ref){
+    try {
+      newText = document.getElementById("transShortcut"+ref).innerText
+      editor.blocks.insert('paragraph', {
+        text: newText
+      });
+
+      const editorjsHolderElement = document.getElementById('editorjsHolder');
+      editorjsHolderElement.scrollTop = editorjsHolderElement.scrollHeight;
+
+
+    } catch {console.warn("using transcript shortcut that doesn't exist")}
+  }
+
+  window.addEventListener('keydown', function(event) {
+    if (event.altKey) {
+      if (event.code === 'Digit5') {
+        event.preventDefault();
+        document.getElementById('voiceTransToggle').click();
+      } else if (event.code === 'Digit6'){
+        event.preventDefault();
+        pushTranscriptToEditor('6')
+      } else if (event.code === 'Digit7'){
+        event.preventDefault();
+        pushTranscriptToEditor('7')
+      } else if (event.code === 'Digit8'){
+        event.preventDefault();
+        pushTranscriptToEditor('8')
+      } else if (event.code === 'Digit9'){
+        event.preventDefault();
+        pushTranscriptToEditor('9')
+      }
+    }
+  }, true);
 
   recognition.onresult = (event) => {
     let interimTranscript = '';
@@ -392,7 +439,7 @@ if (SpeechRecognition) {
     console.log('- recognition.onend')
     voiceTransToggleElement.checked = false
     if (!transcriptDiv.textContent || transcriptDiv.textContent === 'Listening to video audio...') {
-      transcriptDiv.textContent = 'No speech detected.';
+      transcriptDiv.textContent = 'Stopped listening to device microphone.';
     }
     if (userStopped == false){
       try {
@@ -407,17 +454,39 @@ if (SpeechRecognition) {
   }
 
   function addToTranscriptList(text) {
-    const holder = document.getElementById('voiceTransHolder');
-    if (holder) {
-      const card = document.createElement('div');
-      card.className = 'card';
-      card.style.marginBottom = '12px';
-      card.innerHTML = `
-        <div class="card-body">
-          <p class="card-text">${text}</p>
-        </div>
-      `;
-      holder.insertBefore(card, holder.firstChild);
+    if (text !== " "){
+      const holder = document.getElementById('voiceTransHolder');
+      if (holder) {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.style.marginBottom = '12px';
+        card.style.position = 'relative'; //🟡
+        card.innerHTML = `
+          <div class="card-body transcript">
+            <span class="gray" style="position: absolute; top: 0px; right: 5px;">
+            </span>
+            <p class="card-text">${text}</p>
+          </div>
+        `;
+        holder.insertBefore(card, holder.firstChild);
+        resetShortcutReferences()
+      }
+
+      function resetShortcutReferences(){
+        var cards = document.getElementsByClassName('transcript')
+        var nCardsToWrite = Math.min(cards.length,4)
+        var n = 0
+        for (var card of cards){
+          n = n + 1
+          if (n <= nCardsToWrite){
+            card.querySelector('span').innerText="⌥"+String(n+5)
+            card.querySelector('.card-text').id = "transShortcut"+String(n+5)
+          } else {
+            card.querySelector('span').innerText=""
+            card.querySelector('.card-text').id = ""
+          }
+        }
+      }
     }
   }
 

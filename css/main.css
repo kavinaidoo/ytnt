@@ -14,13 +14,10 @@ body {
 body {
   font-family: sans-serif;
   line-height: 1.6;
-  /* margin: 20px; */
 }
 
 #editorjs {
-  /* border: 1px solid #ccc; */
   padding: 10px;
-  /* min-height: 200px;  */
 }
 
 .ce-toolbar__settings-btn{
@@ -69,7 +66,7 @@ body {
 }
 
 .main-container {
-  height: calc(100vh - 105px); /* Adjust for header and footer */
+  height: calc(100vh - 58px); /* Adjust for header and footer */
   overflow: hidden;
 }
 
@@ -82,12 +79,13 @@ body {
 
 .column-b {
   height: 100%;
-  overflow-y: auto; /* Allow scrolling for Column B */
+  overflow: hidden; /* No scrolling for Column B */
+  display: flex;
+  flex-direction: column;
 }
 
 #editorjs {
   min-height: 100%;
-  padding: 15px;
 }
 
 .gray {
