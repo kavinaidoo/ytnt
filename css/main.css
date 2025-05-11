@@ -107,3 +107,8 @@ body {
 .pulse-once {
   animation: pulse-once 0.3s ease-in-out;
 }
+
+.ce-block--selected {
+  background-color: white;
+  color: black;
+}
