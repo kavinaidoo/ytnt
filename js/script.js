@@ -80,9 +80,18 @@ function destroyYTPlayer() { // destroys player
   }
 }
 
+function loadVideoFromQueryParam(){ // loads a video if it has been passed via ?v=
+  var v = (new URLSearchParams((new URL(window.location.href)).search)).get('v');
+  if(v){
+    loadVideoTextElement.value = "https://www.youtube.com/watch?v=" + v
+    loadVideoButtonElement.click()
+  }
+}
+
 function onYouTubeIframeAPIReady() { // called when YT API loads
   loadVideoButtonElement.classList = "btn btn-outline-secondary" // enables load video button
   loadVideoTextElement.disabled = false;
+  loadVideoFromQueryParam()
 }
 
 function ytIdFromURL(urlString){ // extracts video id from YT url
