@@ -8,7 +8,7 @@ var loadVideoTextElement = document.getElementById('loadVideoText')
 var introTextElement = document.getElementById('introText')
 var vidAndEditorElement = document.getElementById('vidAndEditor')
 var downloadDOCXButtonElement = document.getElementById('downloadDOCXButton')
-var clearNotesButtonElement = document.getElementById('clearNotesButton')
+var newNotesButtonElement = document.getElementById('newNotesButton')
 var playPauseButtonElement = document.getElementById('playPauseButton')
 var back10ButtonElement = document.getElementById('back10Button')
 var back30ButtonElement = document.getElementById('back30Button')
@@ -45,6 +45,9 @@ const editor = new EditorJS({
   onReady: () => {
       new Undo({ editor });
   },
+  onChange : async () => {
+    saveToLocalStorage()
+  }
 });
 
 // Functions
@@ -89,8 +92,9 @@ function loadVideoFromQueryParam(){ // loads a video if it has been passed via ?
 }
 
 function onYouTubeIframeAPIReady() { // called when YT API loads
-  loadVideoButtonElement.classList = "btn btn-outline-secondary" // enables load video button
   loadVideoTextElement.disabled = false;
+  loadVideoTextElement.classList.add('border-light')
+  loadVideoButtonElement.classList = "btn btn-outline-light" // enables load video button
   loadVideoFromQueryParam()
 }
 
@@ -119,6 +123,15 @@ function pulseOnce(elementString) {
 }
 
 function onPlayerReady(event) {
+
+  setTimeout( async () => { // waiting so that player.getVideoData().author is not empty
+    await editor.blocks.insert('paragraph', {
+      text: player.getVideoData().author + " - " + player.getVideoData().title + " - " + "https://www.youtube.com/watch?v="+ player.getVideoData().video_id
+    },{}, editor.blocks.getBlocksCount(), true);
+    const newBlockIndex = editor.blocks.getBlocksCount() - 1; // Assuming it's the last block
+    editor.caret.setToBlock(newBlockIndex, 'end');
+  }, 1000);
+
   window.addEventListener('keydown', function(event) {
     if (event.altKey) {
       if (event.code === 'Digit1') {
@@ -220,26 +233,30 @@ loadVideoButtonElement.addEventListener('click', () => {
   if (!ytId){
     loadVideoTextElement.value = "URL Error, Try Again..."
     loadVideoTextElement.disabled = true
+    loadVideoTextElement.classList = 'form-control border-danger'
     loadVideoButtonElement.innerText = "Load Failed"
     loadVideoButtonElement.classList = "btn btn-outline-danger"
     setTimeout(function(){
       loadVideoTextElement.value = ""
       loadVideoTextElement.disabled = false
+      loadVideoTextElement.classList = 'form-control border-light'
       loadVideoButtonElement.innerText = "Load Video"
-      loadVideoButtonElement.classList = "btn btn-outline-secondary"
-    },3000);
+      loadVideoButtonElement.classList = "btn btn-outline-light"
+    },1000);
   } else {
     destroyYTPlayer()
     introTextElement.style = "display:none"
     vidAndEditorElement.style = "display:block"
     loadVideoTextElement.value = ""
-    loadVideoButtonElement.innerText = "Loading.."
+    loadVideoTextElement.classList = 'form-control border-success'
+    loadVideoButtonElement.innerText = "Loading..."
     loadVideoButtonElement.classList = "btn btn-outline-success"
     setTimeout(function(){
       loadVideoTextElement.value = ""
+      loadVideoTextElement.classList = 'form-control border-light'
       loadVideoButtonElement.innerText = "Load Video"
-      loadVideoButtonElement.classList = "btn btn-outline-secondary"
-    },3000);
+      loadVideoButtonElement.classList = "btn btn-outline-light"
+    },1000);
     loadYTPlayer(ytId)
   }
 })
@@ -271,8 +288,15 @@ downloadDOCXButtonElement.addEventListener('click', async () => {
   URL.revokeObjectURL(url);
 })
 
-clearNotesButtonElement.addEventListener('click', () => {
-  editor.blocks.clear();
+newNotesButtonElement.addEventListener('click', () => {
+  saveToLocalStorage()
+  setTimeout(() => {
+    autoSaveElement.innerText = "AutoSave Off"
+    notesNameTextElement.value = ""
+    currentDocumentName = ""
+    editor.blocks.clear();
+  }, 1010);
+  
 })
 
 playPauseButtonElement.addEventListener('click', () => {
@@ -308,6 +332,8 @@ distractionButtonElement.addEventListener('click', () => {
     document.exitFullscreen();
   }
 })
+
+// Speech Recognition
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -388,6 +414,8 @@ if (SpeechRecognition) {
       editor.blocks.insert('paragraph', {
         text: newText
       });
+      const newBlockIndex = editor.blocks.getBlocksCount() - 1; // Assuming it's the last block
+      editor.caret.setToBlock(newBlockIndex, 'end');
 
       const editorjsHolderElement = document.getElementById('editorjsHolder');
       editorjsHolderElement.scrollTop = editorjsHolderElement.scrollHeight;
@@ -499,4 +527,105 @@ if (SpeechRecognition) {
     }
   }
 
+}
+
+// Loading and Saving Notes
+
+var currentDocumentName = ""
+var saveNameButtonElement = document.getElementById('saveNameButton')
+var notesNameTextElement = document.getElementById('notesNameText')
+saveNameButtonElement.addEventListener('click', () => {
+  if (notesNameTextElement.value == ""){
+    saveNameButtonElement.innerText = "Name is Blank!"
+    setTimeout(() => {
+        saveNameButtonElement.innerText = "Save Name"
+    }, 1000);
+  } else if (!(/^[A-Za-z0-9\s]*$/.test(notesNameTextElement.value))){
+    saveNameButtonElement.innerText = "Can only contain letters, numbers and spaces"
+    notesNameTextElement.value = ""
+    setTimeout(() => {
+        saveNameButtonElement.innerText = "Save Name"
+    }, 1000);
+  } else {
+    currentDocumentName = notesNameTextElement.value
+    autoSaveElement.innerText = "AutoSave On"
+    saveToLocalStorage()
+  }
+})
+
+var autoSaveElement = document.getElementById('autoSave')
+async function saveToLocalStorage(){
+  if (currentDocumentName !== ""){
+    try {
+      const outputData = await editor.save();
+      var localStoragePayload = {}
+      localStoragePayload.editorData = outputData
+      localStoragePayload.lastUpdated = Math.floor(Date.now() / 1000)
+      localStorage.setItem("ytnt_"+currentDocumentName, JSON.stringify(localStoragePayload));
+      autoSaveElement.innerText = "Saving..."
+      setTimeout(() => {
+          autoSaveElement.innerText = "AutoSave On"
+      }, 1000);
+    } catch (error) {
+        console.error('Saving failed: ', error);
+    }
+  }
+}
+
+function loadFromLocalStorage(documentName) {
+  editor.render(JSON.parse(localStorage["ytnt_"+documentName]).editorData)
+  notesNameTextElement.value = documentName
+  currentDocumentName = documentName
+  autoSaveElement.innerText = "AutoSave On"
+  introTextElement.style = "display:none"
+  vidAndEditorElement.style = "display:block"
+  offCanvasSavedBootstrap.hide()
+}
+
+var savedButtonElement = document.getElementById('savedButton')
+var offCanvasSavedBootstrap = new bootstrap.Offcanvas(document.getElementById('offCanvasSaved')) // offCanvasSaved offCanvas element
+savedButtonElement.addEventListener('click', () => {
+  generateSavedNotes()
+  offCanvasSavedBootstrap.show()
+})
+
+function deleteNote(documentName){
+  var boolDel = window.confirm('Click OK to Delete')
+  if (boolDel){
+    localStorage.removeItem("ytnt_"+documentName)
+    generateSavedNotes()
+  }
+}
+
+function generateSavedNotes() {
+  
+  var savedNotesDivElement = document.getElementById('savedNotesDiv')
+  var noSavedNotesElement = document.getElementById('noSavedNotes')
+  if (savedNotesDivElement) {
+    savedNotesDivElement.replaceChildren()
+    noSavedNotesElement.style = "display:block"
+
+    for (var lsItem in window.localStorage){
+  
+      if (lsItem.includes("ytnt_")){
+        noSavedNotesElement.style = "display:none"
+        var notesName = lsItem.substring(5)
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.style.marginBottom = '12px';
+        card.style.position = 'relative';
+        card.innerHTML = `
+          <div class="card-body">
+            <p class="card-text">${notesName}</p>
+            <div class="text-end">
+              <a class="btn btn-sm btn-outline-secondary" onclick="deleteNote('${notesName}')">Delete Notes</a>
+              <a class="btn btn-sm btn-outline-light" onclick="loadFromLocalStorage('${notesName}')">Load Notes</a>
+            </div>
+          </div>
+        `;
+        savedNotesDivElement.insertBefore(card, savedNotesDivElement.firstChild);
+      }
+
+    }
+  }
 }

@@ -4,7 +4,11 @@ Easily take notes while watching a YouTube video.
 Simultaneously type and control playback with keyboard shortcuts.
 Export to Word (.docx) when you're done.
 
-Includes:
+Link to YTNT: https://kavinaidoo.github.io/ytnt/
+
+Guide: https://kavi.sblmnl.co.za/yt-notetaker/
+
+Includes unmodified versions of:
 - bootstrap - v5.3.5 - https://github.com/twbs/bootstrap
 - icons - v1.11.3 - https://github.com/twbs/icons
 - editor.js - v2.30.8 - https://github.com/codex-team/editor.js
@@ -15,4 +19,4 @@ Includes:
 - editorjs-html - v4.0.5 - https://github.com/pavittarx/editorjs-html
 - docx - v9.4.1 - https://github.com/dolanmiu/docx
 
-Licenses are available in LICENSE.md
+Licenses for the above are present in LICENSE.md
