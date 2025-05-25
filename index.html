@@ -19,7 +19,7 @@
           </svg>
           YTNT
         </span>
-        <span class="gray" style="margin-right: 10px; min-width: 40px;">🐞 v7</span>
+        <span class="gray" style="margin-right: 10px; min-width: 40px;">🐞 v8</span>
         <div class="d-flex">
           <a class="btn btn-outline-secondary" href="https://kavi.sblmnl.co.za/contact/" style="margin-right: 10px;" target="_blank">Contact</a>
           <a class="btn btn-outline-secondary" href="https://github.com/kavinaidoo/ytnt/issues" style="margin-right: 10px;" target="_blank">Issues</a>
@@ -41,6 +41,7 @@
         <p class="lead mb-4">
           Easily take notes while watching a YouTube video.<br>
           Simultaneously type and control playback with keyboard shortcuts.<br>
+          Notes are autosaved in the browser once you name them.<br>
           Export to Word (.docx) when you're done.
         </p>
         <p class="lead mb-4">
@@ -168,7 +169,7 @@
               id="notesNameText" 
               type="text" 
               class="form-control" 
-              placeholder="Add a name to save these notes" 
+              placeholder="Add a name for these notes and click Save →" 
               aria-label="Notes Name"
             >
             <button class="btn btn-outline-secondary" type="button" id="saveNameButton">
@@ -179,8 +180,10 @@
             </button>
           </div>
 
-          <div id="editorjsHolder" style="min-height:300px;overflow-y: auto;">
-            <div id="editorjs"></div>
+          <div id="editorjsHolder" class="flex-grow-1" style="min-height:300px; overflow-y: auto;">
+            <div id="editorjs" style="padding-bottom: 100px;">
+
+            </div>
           </div>
 
         </div>
@@ -220,6 +223,15 @@
         </h5>
       </div>
       <div class="offcanvas-body">
+
+        <div class="card border-danger" style="margin-bottom: 12px;">
+          <div class="card-body text-danger">
+            <h5 class="card-title">Warning</h5>
+            <p class="card-text">
+              This feature is considered temporary storage only. Please use the export function for long term storage. </p>
+          </div>
+        </div>
+
         <div id="savedNotesDiv">
         </div>
         <div id="noSavedNotes" class="position-absolute top-50 start-50 translate-middle text-nowrap fs-4 text-center fw-lighter">

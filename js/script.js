@@ -52,29 +52,45 @@ const editor = new EditorJS({
 
 // Functions
 
-function loadYTPlayer(videoId){
-  player = new YT.Player('player', {
-    height: '100%',
-    width: '100%',
-    videoId: videoId,
-    host: 'https://www.youtube-nocookie.com',
-    playerVars: {
-      'autoplay': 1,
-      'controls': 1,
-      'rel': 0,
-      'iv_load_policy': 3,
-      'cc_load_policy': 1,
-      'cc_lang_pref':'en',
-      'playsinline':1,
-      'fs':0,
-      'disablekb':1,
-    },
-    events: {
-      'onReady': onPlayerReady,
-      'onError': onPlayerError
-    }
-  });
+function loadYTPlayer(videoId,startTime){
+  if (videoId){
+    player = new YT.Player('player', {
+      height: '100%',
+      width: '100%',
+      videoId: videoId,
+      host: 'https://www.youtube-nocookie.com',
+      playerVars: {
+        'autoplay': 1,
+        'controls': 1,
+        'rel': 0,
+        'iv_load_policy': 3,
+        'cc_load_policy': 1,
+        'cc_lang_pref':'en',
+        'playsinline':1,
+        'fs':0,
+        'disablekb':1,
+        'start': startTime ? startTime : 0
+      },
+      events: {
+        'onReady': onPlayerReady,
+        'onError': onPlayerError,
+        'onStateChange': onPlayerStateChange
+      },
+    });
+  }
 }
+
+function onPlayerStateChange(){ // saves video position when player state changes
+  saveToLocalStorage()
+}
+
+setInterval(() => { // saves video position every 10 seconds when playing
+  try {
+    if (player.getPlayerState() == 1){
+      saveToLocalStorage()
+    }
+  } catch {}
+},10000);
 
 function destroyYTPlayer() { // destroys player
   if (player && typeof player.destroy === 'function') {
@@ -103,7 +119,7 @@ function ytIdFromURL(urlString){ // extracts video id from YT url
     return null;
   }
   if (urlString.length == 0){
-    urlString = "https://www.youtube.com/watch?v=h6FS70B0blQ"
+    urlString = "https://www.youtube.com/watch?v=2KjW4BqNFy0"
   }
 
   try {
@@ -125,9 +141,15 @@ function pulseOnce(elementString) {
 function onPlayerReady(event) {
 
   setTimeout( async () => { // waiting so that player.getVideoData().author is not empty
+    await editor.blocks.insert('header', {
+      text: player.getVideoData().author + " - " + player.getVideoData().title
+    },{}, editor.blocks.getBlocksCount(), false);
     await editor.blocks.insert('paragraph', {
-      text: player.getVideoData().author + " - " + player.getVideoData().title + " - " + "https://www.youtube.com/watch?v="+ player.getVideoData().video_id
-    },{}, editor.blocks.getBlocksCount(), true);
+      text: "https://www.youtube.com/watch?v="+ player.getVideoData().video_id
+    },{}, editor.blocks.getBlocksCount(), false);
+    await editor.blocks.insert('paragraph', {
+      text: ""
+    },{}, editor.blocks.getBlocksCount(), false);
     const newBlockIndex = editor.blocks.getBlocksCount() - 1; // Assuming it's the last block
     editor.caret.setToBlock(newBlockIndex, 'end');
   }, 1000);
@@ -226,6 +248,12 @@ firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
 // Events
 
+loadVideoTextElement.addEventListener("keyup", ({key}) => { // listens for enter pressed
+    if (key === "Enter") {
+        loadVideoButtonElement.click()
+    }
+})
+
 loadVideoButtonElement.addEventListener('click', () => {
   var videoURL = loadVideoTextElement.value
   var ytId = ytIdFromURL(videoURL)
@@ -279,7 +307,11 @@ downloadDOCXButtonElement.addEventListener('click', async () => {
   a.href = url;
   var fileName = ""
   try {
-    filename = 'YTNT - '+player.getVideoData().author + ' - ' + player.getVideoData().title
+    if (currentDocumentName == ""){
+      filename = 'YTNT - '+player.getVideoData().author + ' - ' + player.getVideoData().title
+    } else {
+      filename = currentDocumentName
+    }
   } catch {
     filename = 'YTNT'
   }
@@ -296,7 +328,6 @@ newNotesButtonElement.addEventListener('click', () => {
     currentDocumentName = ""
     editor.blocks.clear();
   }, 1010);
-  
 })
 
 playPauseButtonElement.addEventListener('click', () => {
@@ -361,12 +392,10 @@ async function speechRecognitionPermissions(){
         try {
           const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
           requestVoicePermissionButtonElement.style = 'display:none'
-          console.log('Microphone access granted');
           document.getElementById('interimTranscript').innerText = 'Speech-to-Text uses your browser and device microphone to convert speech to text. Ensure that the video is playing loudly enough that your device can "hear" it. It will also convert your own speech.'
           document.getElementById('voiceTransToggle').disabled = false;
           document.getElementById('voiceTransToggleText').innerHTML = 'Speech-to-Text Off <span class="gray">⌥5<span>'
         } catch (error) {
-          console.error('Error requesting microphone permission:', error);
           document.getElementById('interimTranscript').innerHTML = 'Speech-to-Text uses your browser and device microphone to convert speech to text. Ensure that the video is playing loudly enough that your device can "hear" it. It will also convert your own speech. This is an experimental feature.<br><br>Allow the Microphone permission in your browser settings and reload the page to use this feature.'
           document.getElementById('requestVoicePermissionButton').style = 'display:none'
         }
@@ -419,9 +448,9 @@ if (SpeechRecognition) {
 
       const editorjsHolderElement = document.getElementById('editorjsHolder');
       editorjsHolderElement.scrollTop = editorjsHolderElement.scrollHeight;
-
-
-    } catch {console.warn("using transcript shortcut that doesn't exist")}
+    } catch {
+      console.warn("using transcript shortcut that doesn't exist")
+    }
   }
 
   window.addEventListener('keydown', function(event) {
@@ -561,6 +590,9 @@ async function saveToLocalStorage(){
       var localStoragePayload = {}
       localStoragePayload.editorData = outputData
       localStoragePayload.lastUpdated = Math.floor(Date.now() / 1000)
+      localStoragePayload.ytVideoId = player.getVideoData().video_id
+      localStoragePayload.ytVideoTime = Math.round(player.getCurrentTime())
+      localStoragePayload.version = 8
       localStorage.setItem("ytnt_"+currentDocumentName, JSON.stringify(localStoragePayload));
       autoSaveElement.innerText = "Saving..."
       setTimeout(() => {
@@ -573,7 +605,12 @@ async function saveToLocalStorage(){
 }
 
 function loadFromLocalStorage(documentName) {
-  editor.render(JSON.parse(localStorage["ytnt_"+documentName]).editorData)
+  lsPayload = JSON.parse(localStorage["ytnt_"+documentName])
+  destroyYTPlayer()
+  var ytVideoId = lsPayload.ytVideoId
+  var ytVideoTime = lsPayload.ytVideoTime
+  loadYTPlayer(ytVideoId,ytVideoTime)
+  editor.render(lsPayload.editorData)
   notesNameTextElement.value = documentName
   currentDocumentName = documentName
   autoSaveElement.innerText = "AutoSave On"
