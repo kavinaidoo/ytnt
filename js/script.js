@@ -50,6 +50,22 @@ const editor = new EditorJS({
   }
 });
 
+// Initial loading
+
+if (/Android|iPhone|iPad/i.test(navigator.userAgent) || window.innerWidth <= 768){
+  offCanvasMobileDeviceBootstrap.show() // detecting mobile devices
+}
+
+const tag = document.createElement('script');
+tag.src = `https://www.youtube.com/iframe_api?ts=${new Date().getTime()}`; // YT iframe api
+const firstScriptTag = document.getElementsByTagName('script')[0];
+firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+var currentASRBackend = localStorage.getItem('ytnt_asrBackend')
+if (!currentASRBackend){
+  currentASRBackend = 'asr_wsapi'
+}
+
 // Functions
 
 function loadYTPlayer(videoId,startTime){
@@ -235,17 +251,6 @@ function htmlToDocx(element) {
   return children;
 }
 
-// Initial loading
-
-if (/Android|iPhone|iPad/i.test(navigator.userAgent) || window.innerWidth <= 768){
-  offCanvasMobileDeviceBootstrap.show() // detecting mobile devices
-}
-
-const tag = document.createElement('script');
-tag.src = `https://www.youtube.com/iframe_api?ts=${new Date().getTime()}`;
-const firstScriptTag = document.getElementsByTagName('script')[0];
-firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-
 // Events
 
 loadVideoTextElement.addEventListener("keyup", ({key}) => { // listens for enter pressed
@@ -366,14 +371,505 @@ distractionButtonElement.addEventListener('click', () => {
 
 // Speech Recognition
 
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-async function speechRecognitionPermissions(){
+
+
+
+if (currentASRBackend == 'asr_wsapi'){
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
   if (!SpeechRecognition) {
     document.getElementById('interimTranscript').innerText = 'Your browser does not support Speech-to-Text. Try using Chrome or Edge. (Web Speech API not supported)'
     var requestVoicePermissionButtonElement =  document.getElementById('requestVoicePermissionButton')
     requestVoicePermissionButtonElement.style = 'display:none'
-  } else {
+  } 
+
+  if (SpeechRecognition) {
+    microphonePermissions()
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    const voiceTransToggleElement = document.getElementById('voiceTransToggle');
+    const transcriptDiv = document.getElementById('interimTranscript');
+
+    var userStopped = false
+
+    voiceTransToggleElement.addEventListener('click', () => {
+      if(voiceTransToggleElement.checked){
+        document.getElementById('voiceTransToggleText').innerHTML = 'Speech-to-Text On <span class="gray">⌥5<span>'
+        recognition.start();
+        transcriptDiv.textContent = 'Listening to device microphone...';
+        userStopped = false
+      } else {
+        document.getElementById('voiceTransToggleText').innerHTML = 'Speech-to-Text Off <span class="gray">⌥5<span>'
+        userStopped = true
+        recognition.stop();
+        transcriptDiv.textContent = 'Stopped listening to device microphone.';
+      }
+    })
+
+    function pushTranscriptToEditor(ref){
+      try {
+        newText = document.getElementById("transShortcut"+ref).innerText
+        editor.blocks.insert('paragraph', {
+          text: newText
+        });
+        const newBlockIndex = editor.blocks.getBlocksCount() - 1; // Assuming it's the last block
+        editor.caret.setToBlock(newBlockIndex, 'end');
+
+        const editorjsHolderElement = document.getElementById('editorjsHolder');
+        editorjsHolderElement.scrollTop = editorjsHolderElement.scrollHeight;
+      } catch {
+        console.warn("using transcript shortcut that doesn't exist")
+      }
+    }
+
+    window.addEventListener('keydown', function(event) {
+      if (event.altKey) {
+        if (event.code === 'Digit5') {
+          event.preventDefault();
+          document.getElementById('voiceTransToggle').click();
+        } else if (event.code === 'Digit6'){
+          event.preventDefault();
+          pushTranscriptToEditor('6')
+        } else if (event.code === 'Digit7'){
+          event.preventDefault();
+          pushTranscriptToEditor('7')
+        } else if (event.code === 'Digit8'){
+          event.preventDefault();
+          pushTranscriptToEditor('8')
+        } else if (event.code === 'Digit9'){
+          event.preventDefault();
+          pushTranscriptToEditor('9')
+        }
+      }
+    }, true);
+
+    recognition.onresult = (event) => {
+      let interimTranscript = '';
+      let finalTranscript = '';
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript + ' ';
+        } else {
+          interimTranscript += transcript;
+        }
+      }
+
+      transcriptDiv.textContent = finalTranscript + interimTranscript;
+
+      if(finalTranscript.length > 0){
+          addToTranscriptList(finalTranscript)
+          transcriptDiv.textContent = ""
+      }
+    
+    }
+
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error:', event.error);
+      transcriptDiv.innerText = `Error: ${event.error}`;
+    }
+
+    recognition.onend = (e) => {
+      console.log('- recognition.onend')
+      voiceTransToggleElement.checked = false
+      if (!transcriptDiv.textContent || transcriptDiv.textContent === 'Listening to video audio...') {
+        transcriptDiv.textContent = 'Stopped listening to device microphone.';
+      }
+      if (userStopped == false){
+        try {
+        console.warn('userStopped == false - trying to restart')
+        recognition.start();
+        voiceTransToggleElement.checked = true
+        console.warn('userStopped == false - restart success')
+        } catch {
+          console.error('userStopped == false - restart failed')
+        }
+      }
+    }
+
+    function addToTranscriptList(text) {
+      if (text !== " "){
+        const holder = document.getElementById('voiceTransHolder');
+        if (holder) {
+          const card = document.createElement('div');
+          card.className = 'card';
+          card.style.marginBottom = '12px';
+          card.style.position = 'relative'; //🟡
+          card.innerHTML = `
+            <div class="card-body transcript">
+              <span class="gray" style="position: absolute; top: 0px; right: 5px;">
+              </span>
+              <p class="card-text">${text}</p>
+            </div>
+          `;
+          holder.insertBefore(card, holder.firstChild);
+          resetShortcutReferences()
+        }
+
+        function resetShortcutReferences(){
+          var cards = document.getElementsByClassName('transcript')
+          var nCardsToWrite = Math.min(cards.length,4)
+          var n = 0
+          for (var card of cards){
+            n = n + 1
+            if (n <= nCardsToWrite){
+              card.querySelector('span').innerText="⌥"+String(n+5)
+              card.querySelector('.card-text').id = "transShortcut"+String(n+5)
+            } else {
+              card.querySelector('span').innerText=""
+              card.querySelector('.card-text').id = ""
+            }
+          }
+        }
+      }
+    }
+
+  }
+
+}
+
+if (currentASRBackend == 'asr_vb'){
+
+  console.log('currentASRBackend == asr_vb')
+
+//   async function init() {
+//     //const model = await Vosk.createModel('model.tar.gz');
+//     const model = await Vosk.createModel('./vosk_models/vosk-model-small-en-us-0.15.zip');
+//     //const model = await Vosk.createModel('./vosk_models/vosk-model-small-en-us-0.15.tar.gz');
+
+//     const recognizer = new model.KaldiRecognizer();
+//     recognizer.on("result", (message) => {
+//         console.log(`Result: ${message.result.text}`);
+//     });
+//     recognizer.on("partialresult", (message) => {
+//         console.log(`Partial result: ${message.result.partial}`);
+//     });
+    
+//     const mediaStream = await navigator.mediaDevices.getUserMedia({
+//         video: false,
+//         audio: {
+//             echoCancellation: true,
+//             noiseSuppression: true,
+//             channelCount: 1,
+//             sampleRate: 16000
+//         },
+//     });
+    
+//     const audioContext = new AudioContext();
+//     const recognizerNode = audioContext.createScriptProcessor(4096, 1, 1)
+//     recognizerNode.onaudioprocess = (event) => {
+//         try {
+//             recognizer.acceptWaveform(event.inputBuffer)
+//         } catch (error) {
+//             console.error('acceptWaveform failed', error)
+//         }
+//     }
+//     const source = audioContext.createMediaStreamSource(mediaStream);
+//     source.connect(recognizerNode);
+// }
+
+// window.onload = init;
+
+// THIS CODE WORKS IN CHROME ONLY
+// function createAudioWorkletModule() {
+//     const processorCode = `
+//         class VoiceProcessor extends AudioWorkletProcessor {
+//             constructor() {
+//                 super();
+//             }
+            
+//             process(inputs, outputs, parameters) {
+//                 const input = inputs[0];
+                
+//                 if (input.length > 0) {
+//                     // Send the raw Float32Array input data to the main thread
+//                     this.port.postMessage({
+//                         type: 'audioData',
+//                         audioData: input[0]
+//                     });
+//                 }
+                
+//                 return true; // Keep the processor alive
+//             }
+//         }
+        
+//         registerProcessor('voice-processor', VoiceProcessor);
+//     `;
+    
+//     const blob = new Blob([processorCode], { type: 'application/javascript' });
+//     return URL.createObjectURL(blob);
+// }
+// async function init() {
+//     try {
+//         const sampleRate = 16000;
+
+//         // Load the model
+//         const model = await Vosk.createModel('./vosk_models/vosk-model-small-en-us-0.15.zip');
+        
+//         // Create recognizer with the required sampleRate
+//         const recognizer = new model.KaldiRecognizer(sampleRate);
+        
+//         // Set up event handlers
+//         recognizer.on("result", (message) => {
+//             console.log(`Result: ${message.result.text}`);
+//         });
+//         recognizer.on("partialresult", (message) => {
+//             console.log(`Partial result: ${message.result.partial}`);
+//         });
+        
+//         // Get media stream
+//         const mediaStream = await navigator.mediaDevices.getUserMedia({
+//             video: false,
+//             audio: {
+//                 echoCancellation: true,
+//                 noiseSuppression: true,
+//                 channelCount: 1,
+//                 sampleRate: sampleRate
+//             },
+//         });
+        
+//         // Create audio context
+//         const audioContext = new AudioContext({ sampleRate: sampleRate });
+        
+//         if (audioContext.state === 'suspended') {
+//             await audioContext.resume();
+//         }
+        
+//         if (audioContext.audioWorklet) {
+//             try {
+//                 await audioContext.audioWorklet.addModule(createAudioWorkletModule());
+                
+//                 const recognizerNode = new AudioWorkletNode(audioContext, 'voice-processor');
+                
+//                 // --- THIS IS THE FIX ---
+//                 // Revert to creating an AudioBuffer, as this version of Vosk requires it.
+//                 recognizerNode.port.onmessage = (event) => {
+//                     try {
+//                         if (event.data.type === 'audioData') {
+//                             // Create AudioBuffer from the Float32Array data
+//                             const audioData = event.data.audioData;
+//                             const audioBuffer = audioContext.createBuffer(1, audioData.length, audioContext.sampleRate);
+//                             audioBuffer.copyToChannel(audioData, 0);
+                            
+//                             // Pass the newly created AudioBuffer to the recognizer
+//                             recognizer.acceptWaveform(audioBuffer);
+//                         }
+//                     } catch (error) {
+//                         console.error('acceptWaveform failed:', error);
+//                     }
+//                 };
+                
+//                 const source = audioContext.createMediaStreamSource(mediaStream);
+//                 source.connect(recognizerNode);
+                
+//                 console.log('Voice recognition initialized successfully with AudioWorklet');
+                
+//             } catch (workletError) {
+//                 console.warn('AudioWorklet failed, falling back to ScriptProcessor:', workletError);
+//                 useScriptProcessor();
+//             }
+//         } else {
+//             console.warn('AudioWorklet not supported, using ScriptProcessor');
+//             useScriptProcessor();
+//         }
+        
+//         // Fallback function using ScriptProcessor (this part was already correct)
+//         function useScriptProcessor() {
+//             const recognizerNode = audioContext.createScriptProcessor(4096, 1, 1);
+            
+//             recognizerNode.onaudioprocess = (event) => {
+//                 try {
+//                     recognizer.acceptWaveform(event.inputBuffer);
+//                 } catch (error) {
+//                     console.error('acceptWaveform failed:', error);
+//                 }
+//             };
+            
+//             const source = audioContext.createMediaStreamSource(mediaStream);
+//             source.connect(recognizerNode);
+            
+//             const gainNode = audioContext.createGain();
+//             gainNode.gain.value = 0;
+//             recognizerNode.connect(gainNode);
+//             gainNode.connect(audioContext.destination);
+            
+//             console.log('Voice recognition initialized successfully with ScriptProcessor');
+//         }
+        
+//     } catch (error) {
+//         console.error('Failed to initialize voice recognition:', error);
+        
+//         if (error.name === 'NotAllowedError') {
+//             console.error('Microphone access denied. Please allow microphone access and try again.');
+//         } else if (error.name === 'NotFoundError') {
+//             console.error('No microphone found. Please connect a microphone and try again.');
+//         } else if (error.message && error.message.includes('model')) {
+//             console.error('Failed to load Vosk model. Please check the model path and file.');
+//         }
+//     }
+// }
+// document.addEventListener('DOMContentLoaded', init);
+
+// Function to create the AudioWorklet processor module with robust, buffered resampling
+function createAudioWorkletModule() {
+    const processorCode = `
+        class VoiceProcessor extends AudioWorkletProcessor {
+            constructor(options) {
+                super();
+                this.inputSampleRate = options.processorOptions.inputSampleRate;
+                this.outputSampleRate = options.processorOptions.outputSampleRate;
+                this.resampleRatio = this.inputSampleRate / this.outputSampleRate;
+                
+                // Internal buffer to hold audio data between processing calls
+                this.buffer = new Float32Array(0);
+            }
+
+            // This method combines the internal buffer with new data
+            append(newData) {
+                const oldData = this.buffer;
+                this.buffer = new Float32Array(oldData.length + newData.length);
+                this.buffer.set(oldData, 0);
+                this.buffer.set(newData, oldData.length);
+            }
+
+            process(inputs, outputs, parameters) {
+                const input = inputs[0];
+
+                if (input.length > 0) {
+                    // Append the new audio data to our internal buffer
+                    this.append(input[0]);
+
+                    // Calculate how many full output samples we can produce
+                    const outputFrameCount = Math.floor(this.buffer.length / this.resampleRatio);
+
+                    // If we can't produce a full sample, wait for more data
+                    if (outputFrameCount === 0) {
+                        return true;
+                    }
+
+                    // Create the output buffer and perform resampling
+                    const outputData = new Float32Array(outputFrameCount);
+                    for (let i = 0; i < outputFrameCount; i++) {
+                        const inputIndex = i * this.resampleRatio;
+                        const indexPrev = Math.floor(inputIndex);
+                        const indexNext = Math.min(indexPrev + 1, this.buffer.length - 1);
+                        const fraction = inputIndex - indexPrev;
+
+                        // Linear interpolation for quality
+                        outputData[i] = this.buffer[indexPrev] + (this.buffer[indexNext] - this.buffer[indexPrev]) * fraction;
+                    }
+
+                    // Calculate how many input samples were consumed
+                    const consumedInputFrameCount = Math.ceil(outputFrameCount * this.resampleRatio);
+                    
+                    // Remove the consumed data from the internal buffer, keeping the leftovers
+                    this.buffer = this.buffer.slice(consumedInputFrameCount);
+
+                    // Send the resampled data back to the main thread
+                    this.port.postMessage({
+                        type: 'audioData',
+                        audioData: outputData
+                    });
+                }
+                
+                return true; // Keep the processor alive
+            }
+        }
+        
+        registerProcessor('voice-processor', VoiceProcessor);
+    `;
+    
+    const blob = new Blob([processorCode], { type: 'application/javascript' });
+    return URL.createObjectURL(blob);
+}
+
+// Update the init function to get sample rate properly
+async function init() {
+    try {
+        const voskSampleRate = 16000;
+
+        // Load model
+        const model = await Vosk.createModel('./vosk_models/vosk-model-small-en-us-0.15.zip');
+        const recognizer = new model.KaldiRecognizer(voskSampleRate);
+        
+        recognizer.on("result", (message) => console.log(`Result: ${message.result.text}`));
+        // recognizer.on("partialresult", (message) => console.log(`Partial result: ${message.result.partial}`));
+        
+        // Get media stream
+        const mediaStream = await navigator.mediaDevices.getUserMedia({
+            video: false,
+            audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                channelCount: 1,
+                sampleRate: voskSampleRate
+            },
+        });
+
+        // Create AudioContext and get actual sample rate
+        const audioContext = new AudioContext();
+        if (audioContext.state === 'suspended') await audioContext.resume();
+        
+        // Use audioContext's sample rate instead of track settings
+        const actualSampleRate = audioContext.sampleRate;
+        const source = audioContext.createMediaStreamSource(mediaStream);
+        
+        if (audioContext.audioWorklet) {
+            await audioContext.audioWorklet.addModule(createAudioWorkletModule());
+            
+            const recognizerNode = new AudioWorkletNode(audioContext, 'voice-processor', {
+                processorOptions: {
+                    inputSampleRate: actualSampleRate,
+                    outputSampleRate: voskSampleRate
+                }
+            });
+
+            recognizerNode.port.onmessage = (event) => {
+                try {
+                    if (event.data.type === 'audioData') {
+                        const audioData = event.data.audioData;
+                        
+                        // Skip empty buffers
+                        if (audioData.length === 0) {
+                            console.debug('Skipped empty audio buffer');
+                            return;
+                        }
+                        
+                        const audioBuffer = audioContext.createBuffer(1, audioData.length, voskSampleRate);
+                        audioBuffer.copyToChannel(audioData, 0);
+                        recognizer.acceptWaveform(audioBuffer);
+                    }
+                } catch (error) {
+                    console.error('acceptWaveform failed:', error);
+                }
+            };
+            
+            source.connect(recognizerNode);
+            console.log(`Voice recognition initialized. Native SR: ${actualSampleRate}, Vosk SR: ${voskSampleRate}.`);
+        } else {
+            console.error('AudioWorklet not supported');
+        }
+    } catch (error) {
+        console.error('Initialization failed:', error);
+        // Error handling remains the same
+    }
+}
+document.addEventListener('DOMContentLoaded', init);
+
+
+
+
+}
+
+
+
+async function microphonePermissions(){
 
     var permissionStatusObject = await navigator.permissions.query({ name: 'microphone' })
     var permissionStatus = permissionStatusObject.state
@@ -408,155 +904,10 @@ async function speechRecognitionPermissions(){
       var requestVoicePermissionButtonElement =  document.getElementById('requestVoicePermissionButton')
       requestVoicePermissionButtonElement.style = 'display:none'
     }
-  }
-}
-speechRecognitionPermissions()
-
-if (SpeechRecognition) {
-  const recognition = new SpeechRecognition();
-  recognition.continuous = true;
-  recognition.interimResults = true;
-  recognition.lang = 'en-US';
-
-  const voiceTransToggleElement = document.getElementById('voiceTransToggle');
-  const transcriptDiv = document.getElementById('interimTranscript');
-
-  var userStopped = false
-
-  voiceTransToggleElement.addEventListener('click', () => {
-    if(voiceTransToggleElement.checked){
-      document.getElementById('voiceTransToggleText').innerHTML = 'Speech-to-Text On <span class="gray">⌥5<span>'
-      recognition.start();
-      transcriptDiv.textContent = 'Listening to device microphone...';
-      userStopped = false
-    } else {
-      document.getElementById('voiceTransToggleText').innerHTML = 'Speech-to-Text Off <span class="gray">⌥5<span>'
-      userStopped = true
-      recognition.stop();
-      transcriptDiv.textContent = 'Stopped listening to device microphone.';
-    }
-  })
-
-  function pushTranscriptToEditor(ref){
-    try {
-      newText = document.getElementById("transShortcut"+ref).innerText
-      editor.blocks.insert('paragraph', {
-        text: newText
-      });
-      const newBlockIndex = editor.blocks.getBlocksCount() - 1; // Assuming it's the last block
-      editor.caret.setToBlock(newBlockIndex, 'end');
-
-      const editorjsHolderElement = document.getElementById('editorjsHolder');
-      editorjsHolderElement.scrollTop = editorjsHolderElement.scrollHeight;
-    } catch {
-      console.warn("using transcript shortcut that doesn't exist")
-    }
-  }
-
-  window.addEventListener('keydown', function(event) {
-    if (event.altKey) {
-      if (event.code === 'Digit5') {
-        event.preventDefault();
-        document.getElementById('voiceTransToggle').click();
-      } else if (event.code === 'Digit6'){
-        event.preventDefault();
-        pushTranscriptToEditor('6')
-      } else if (event.code === 'Digit7'){
-        event.preventDefault();
-        pushTranscriptToEditor('7')
-      } else if (event.code === 'Digit8'){
-        event.preventDefault();
-        pushTranscriptToEditor('8')
-      } else if (event.code === 'Digit9'){
-        event.preventDefault();
-        pushTranscriptToEditor('9')
-      }
-    }
-  }, true);
-
-  recognition.onresult = (event) => {
-    let interimTranscript = '';
-    let finalTranscript = '';
-
-    for (let i = event.resultIndex; i < event.results.length; i++) {
-      const transcript = event.results[i][0].transcript;
-      if (event.results[i].isFinal) {
-        finalTranscript += transcript + ' ';
-      } else {
-        interimTranscript += transcript;
-      }
-    }
-
-    transcriptDiv.textContent = finalTranscript + interimTranscript;
-
-    if(finalTranscript.length > 0){
-        addToTranscriptList(finalTranscript)
-        transcriptDiv.textContent = ""
-    }
   
-  }
-
-  recognition.onerror = (event) => {
-    console.error('Speech recognition error:', event.error);
-    transcriptDiv.innerText = `Error: ${event.error}`;
-  }
-
-  recognition.onend = (e) => {
-    console.log('- recognition.onend')
-    voiceTransToggleElement.checked = false
-    if (!transcriptDiv.textContent || transcriptDiv.textContent === 'Listening to video audio...') {
-      transcriptDiv.textContent = 'Stopped listening to device microphone.';
-    }
-    if (userStopped == false){
-      try {
-      console.warn('userStopped == false - trying to restart')
-      recognition.start();
-      voiceTransToggleElement.checked = true
-      console.warn('userStopped == false - restart success')
-      } catch {
-        console.error('userStopped == false - restart failed')
-      }
-    }
-  }
-
-  function addToTranscriptList(text) {
-    if (text !== " "){
-      const holder = document.getElementById('voiceTransHolder');
-      if (holder) {
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.style.marginBottom = '12px';
-        card.style.position = 'relative'; //🟡
-        card.innerHTML = `
-          <div class="card-body transcript">
-            <span class="gray" style="position: absolute; top: 0px; right: 5px;">
-            </span>
-            <p class="card-text">${text}</p>
-          </div>
-        `;
-        holder.insertBefore(card, holder.firstChild);
-        resetShortcutReferences()
-      }
-
-      function resetShortcutReferences(){
-        var cards = document.getElementsByClassName('transcript')
-        var nCardsToWrite = Math.min(cards.length,4)
-        var n = 0
-        for (var card of cards){
-          n = n + 1
-          if (n <= nCardsToWrite){
-            card.querySelector('span').innerText="⌥"+String(n+5)
-            card.querySelector('.card-text').id = "transShortcut"+String(n+5)
-          } else {
-            card.querySelector('span').innerText=""
-            card.querySelector('.card-text').id = ""
-          }
-        }
-      }
-    }
-  }
-
 }
+
+
 
 // Loading and Saving Notes
 
@@ -666,3 +1017,21 @@ function generateSavedNotes() {
     }
   }
 }
+
+// Settings
+
+var settingsButtonElement = document.getElementById('settingsButton')
+var offCanvasSettingsBootstrap = new bootstrap.Offcanvas(document.getElementById('offCanvasSettings'))
+settingsButtonElement.addEventListener('click', () => {
+  offCanvasSettingsBootstrap.show()
+})
+
+var asrRadios = document.querySelectorAll('input[type="radio"][name="asrRadio"]');
+asrRadios.forEach(asrRadio => {
+    asrRadio.addEventListener('change', (event) => {
+        if (event.target.checked) {
+          localStorage.setItem('ytnt_asrBackend',event.target.id)
+          window.location.reload()
+        }
+    });
+});

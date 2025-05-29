@@ -19,7 +19,7 @@
           </svg>
           YTNT
         </span>
-        <span class="gray" style="margin-right: 10px; min-width: 40px;">🐞 v8</span>
+        <span id="settingsButton" class="gray" style="margin-right: 10px; min-width: 40px;">🐞 v8a</span>
         <div class="d-flex">
           <a class="btn btn-outline-secondary" href="https://kavi.sblmnl.co.za/contact/" style="margin-right: 10px;" target="_blank">Contact</a>
           <a class="btn btn-outline-secondary" href="https://github.com/kavinaidoo/ytnt/issues" style="margin-right: 10px;" target="_blank">Issues</a>
@@ -241,6 +241,45 @@
     </div>
     <!-- OffCanvas Saved End -->
 
+    <!-- OffCanvas Settings Start -->
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="offCanvasSettings" aria-labelledby="offCanvasSettingsLabel" style="z-index: 1998;">
+      <div class="offcanvas-header offCanvasOpaqueHeader">
+        <h5 class="offcanvas-title fw-lighter"> 
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-play" viewBox="0 0 16 16">
+            <path d="M10.804 8 5 4.633v6.734zm.792-.696a.802.802 0 0 1 0 1.392l-6.363 3.692C4.713 12.69 4 12.345 4 11.692V4.308c0-.653.713-.998 1.233-.696z"/>
+          </svg>
+          Settings Menu
+        </h5>
+      </div>
+      <div class="offcanvas-body">
+
+        <div class="card border-danger" style="margin-bottom: 12px;">
+          <div class="card-body">
+            <h5 class="card-title text-danger mb-2">ASR Backend</h5>
+            
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="asrRadio" id="asr_wsapi">
+              <label class="form-check-label" for="asr_wsapi">
+                Web Speech API (non-Local)
+              </label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="asrRadio" id="asr_vb">
+              <label class="form-check-label" for="asr_vb">
+                Vosk-Browser (Local)
+              </label>
+            </div>
+            <div class="text-danger mt-2">
+                Page will reload if changed.
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <!-- OffCanvas Saved End -->
+    <script src="./js/vosk.min.js"></script>
     <script src="./js/editorjs.umd.min.js"></script>
     <script src="./js/header.umd.js"></script>
     <script src="./js/paragraph.umd.js"></script>
