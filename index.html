@@ -19,13 +19,13 @@
           </svg>
           YTNT
         </span>
-        <span id="settingsButton" class="gray" style="margin-right: 10px; min-width: 40px;">🐞 v8a</span>
+        <span id="settingsButton" class="gray" style="margin-right: 10px; min-width: 40px;">🐞 v8b</span>
         <div class="d-flex">
           <a class="btn btn-outline-secondary" href="https://kavi.sblmnl.co.za/contact/" style="margin-right: 10px;" target="_blank">Contact</a>
           <a class="btn btn-outline-secondary" href="https://github.com/kavinaidoo/ytnt/issues" style="margin-right: 10px;" target="_blank">Issues</a>
           <a class="btn btn-outline-secondary" href="https://github.com/kavinaidoo/ytnt" style="margin-right: 10px;" target="_blank">GitHub</a>
           <button id="savedButton" class="btn btn-outline-light" style="margin-right: 10px;">Saved</button>
-          <div class="input-group">
+          <div id="loadVideoInputGroup" class="input-group">
             <input disabled id="loadVideoText" type="text" class="form-control" placeholder="Paste YouTube URL" aria-label="Enter YouTube URL" aria-describedby="loadVideoButton">
             <button class="btn btn-outline-secondary disabled" type="button" id="loadVideoButton" style="width: 125px;">
               Load Video
@@ -253,11 +253,36 @@
       </div>
       <div class="offcanvas-body">
 
-        <div class="card border-danger" style="margin-bottom: 12px;">
+        <div class="card border-light" style="margin-bottom: 12px;">
           <div class="card-body">
-            <h5 class="card-title text-danger mb-2">ASR Backend</h5>
+            <h5 class="card-title mb-2">Operating Mode</h5>
             
             <div class="form-check">
+              <input class="form-check-input" type="radio" name="ytntMode" id="mode_yt">
+              <label class="form-check-label" for="mode_yt">
+                YouTube - Loads YouTube video
+              </label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="ytntMode" id="mode_no_yt">
+              <label class="form-check-label" for="mode_no_yt">
+                General - Used for non-YouTube Note Taking
+              </label>
+            </div>
+            <div class="mt-2">
+                Page will reload when changed.
+            </div>
+
+          </div>
+        </div>
+
+        <div class="card border-danger" style="margin-bottom: 12px;">
+          <div class="card-body text-danger">
+            <h5 class="card-title mb-2">ASR Backend</h5>
+             <div class="mt-2">
+                Don't change this setting!
+            </div>
+            <div class="form-check mt-2">
               <input class="form-check-input" type="radio" name="asrRadio" id="asr_wsapi">
               <label class="form-check-label" for="asr_wsapi">
                 Web Speech API (non-Local)
@@ -269,8 +294,8 @@
                 Vosk-Browser (Local)
               </label>
             </div>
-            <div class="text-danger mt-2">
-                Page will reload if changed.
+            <div class="mt-2">
+                Page will reload when changed.
             </div>
 
           </div>

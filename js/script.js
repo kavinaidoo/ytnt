@@ -52,7 +52,7 @@ const editor = new EditorJS({
 
 // Initial loading
 
-if (/Android|iPhone|iPad/i.test(navigator.userAgent) || window.innerWidth <= 768){
+if (/Android|iPhone|iPad/i.test(navigator.userAgent) || window.innerWidth <= 500){
   offCanvasMobileDeviceBootstrap.show() // detecting mobile devices
 }
 
@@ -61,9 +61,30 @@ tag.src = `https://www.youtube.com/iframe_api?ts=${new Date().getTime()}`; // YT
 const firstScriptTag = document.getElementsByTagName('script')[0];
 firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
-var currentASRBackend = localStorage.getItem('ytnt_asrBackend')
+var currentASRBackend = localStorage.getItem('LS_asrBackend')
 if (!currentASRBackend){
   currentASRBackend = 'asr_wsapi'
+}
+
+var currentYTNTMode = localStorage.getItem('LS_ytntMode')
+if ((currentYTNTMode == null) || (currentYTNTMode == 'mode_yt')){ // normal (YouTube) mode
+  document.getElementById('mode_yt').checked = true
+  
+
+} else if (currentYTNTMode == 'mode_no_yt'){ // general voice transcription mode
+  document.getElementById('mode_no_yt').checked = true
+  document.getElementById('loadVideoInputGroup').remove()
+  document.getElementById('playPauseButton').remove()
+  document.getElementById('back10Button').remove()
+  document.getElementById('back30Button').remove()
+  document.getElementById('forward5Button').remove()
+  document.getElementById('distractionButton').remove()
+
+
+  
+  introTextElement.style = "display:none"
+  vidAndEditorElement.style = "display:block"
+  document.querySelector('.video-container').remove()
 }
 
 // Functions
@@ -382,7 +403,7 @@ if (currentASRBackend == 'asr_wsapi'){
   if (!SpeechRecognition) {
     document.getElementById('interimTranscript').innerText = 'Your browser does not support Speech-to-Text. Try using Chrome or Edge. (Web Speech API not supported)'
     var requestVoicePermissionButtonElement =  document.getElementById('requestVoicePermissionButton')
-    requestVoicePermissionButtonElement.style = 'display:none'
+    requestVoicePermissionButtonElement.remove()
   } 
 
   if (SpeechRecognition) {
@@ -876,7 +897,7 @@ async function microphonePermissions(){
 
     if (permissionStatus == 'denied'){
       document.getElementById('interimTranscript').innerHTML = 'Speech-to-Text uses your browser and device microphone to convert speech to text. Ensure that the video is playing loudly enough that your device can "hear" it. It will also convert your own speech. This is an experimental feature.<br><br>Allow the Microphone permission in your browser settings and reload the page to use this feature.'
-      document.getElementById('requestVoicePermissionButton').style = 'display:none'
+      document.getElementById('requestVoicePermissionButton').remove()
     } else if (permissionStatus == 'prompt'){
       document.getElementById('interimTranscript').innerHTML = 'Speech-to-Text uses your browser and device microphone to convert speech to text. Ensure that the video is playing loudly enough that your device can "hear" it. It will also convert your own speech. This is an experimental feature.<br><br>Click "Request Microphone Permission" and allow to use this feature.'
       document.getElementById('voiceTransToggle').disabled = true;
@@ -887,13 +908,13 @@ async function microphonePermissions(){
       requestVoicePermissionButtonElement.addEventListener('click', async () => {
         try {
           const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          requestVoicePermissionButtonElement.style = 'display:none'
+          requestVoicePermissionButtonElement.remove()
           document.getElementById('interimTranscript').innerText = 'Speech-to-Text uses your browser and device microphone to convert speech to text. Ensure that the video is playing loudly enough that your device can "hear" it. It will also convert your own speech.'
           document.getElementById('voiceTransToggle').disabled = false;
           document.getElementById('voiceTransToggleText').innerHTML = 'Speech-to-Text Off <span class="gray">⌥5<span>'
         } catch (error) {
           document.getElementById('interimTranscript').innerHTML = 'Speech-to-Text uses your browser and device microphone to convert speech to text. Ensure that the video is playing loudly enough that your device can "hear" it. It will also convert your own speech. This is an experimental feature.<br><br>Allow the Microphone permission in your browser settings and reload the page to use this feature.'
-          document.getElementById('requestVoicePermissionButton').style = 'display:none'
+          document.getElementById('requestVoicePermissionButton').remove()
         }
       })
 
@@ -902,7 +923,7 @@ async function microphonePermissions(){
       document.getElementById('voiceTransToggle').disabled = false;
       document.getElementById('voiceTransToggleText').innerHTML = 'Speech-to-Text Off <span class="gray">⌥5<span>'
       var requestVoicePermissionButtonElement =  document.getElementById('requestVoicePermissionButton')
-      requestVoicePermissionButtonElement.style = 'display:none'
+      requestVoicePermissionButtonElement.remove()
     }
   
 }
@@ -941,8 +962,8 @@ async function saveToLocalStorage(){
       var localStoragePayload = {}
       localStoragePayload.editorData = outputData
       localStoragePayload.lastUpdated = Math.floor(Date.now() / 1000)
-      localStoragePayload.ytVideoId = player.getVideoData().video_id
-      localStoragePayload.ytVideoTime = Math.round(player.getCurrentTime())
+      localStoragePayload.ytVideoId = player?.getVideoData()?.video_id
+      localStoragePayload.ytVideoTime = Math.round(player?.getCurrentTime())
       localStoragePayload.version = 8
       localStorage.setItem("ytnt_"+currentDocumentName, JSON.stringify(localStoragePayload));
       autoSaveElement.innerText = "Saving..."
@@ -1030,7 +1051,17 @@ var asrRadios = document.querySelectorAll('input[type="radio"][name="asrRadio"]'
 asrRadios.forEach(asrRadio => {
     asrRadio.addEventListener('change', (event) => {
         if (event.target.checked) {
-          localStorage.setItem('ytnt_asrBackend',event.target.id)
+          localStorage.setItem('LS_asrBackend',event.target.id)
+          window.location.reload()
+        }
+    });
+});
+
+var modeRadios = document.querySelectorAll('input[type="radio"][name="ytntMode"]');
+modeRadios.forEach(modeRadio => {
+    modeRadio.addEventListener('change', (event) => {
+        if (event.target.checked) {
+          localStorage.setItem('LS_ytntMode',event.target.id)
           window.location.reload()
         }
     });
