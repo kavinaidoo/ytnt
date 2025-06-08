@@ -560,7 +560,7 @@ if (currentASRBackend == 'asr_vb'){
     model = await Vosk.createModel(path);
     console.log('model loaded - '+String(path))
   }
-  loadVoskModel('./vosk_models/vosk-model-small-en-us-0.15.zip')
+  loadVoskModel(window.location.href+'/vosk_models/vosk-model-small-en-us-0.15.zip')
   var runInitBool = false
 
   const voiceTransToggleElement = document.getElementById('voiceTransToggle');
