@@ -69,7 +69,6 @@ if (!currentASRBackend){
 var currentYTNTMode = localStorage.getItem('LS_ytntMode')
 if ((currentYTNTMode == null) || (currentYTNTMode == 'mode_yt')){ // normal (YouTube) mode
   document.getElementById('mode_yt').checked = true
-  
 
 } else if (currentYTNTMode == 'mode_no_yt'){ // general voice transcription mode
   document.getElementById('mode_no_yt').checked = true
@@ -79,9 +78,6 @@ if ((currentYTNTMode == null) || (currentYTNTMode == 'mode_yt')){ // normal (You
   document.getElementById('back30Button').remove()
   document.getElementById('forward5Button').remove()
   document.getElementById('distractionButton').remove()
-
-
-  
   introTextElement.style = "display:none"
   vidAndEditorElement.style = "display:block"
   document.querySelector('.video-container').remove()
@@ -392,12 +388,84 @@ distractionButtonElement.addEventListener('click', () => {
 
 // Speech Recognition
 
+function pushTranscriptToEditor(ref){
+  try {
+    var newText = document.getElementById("transShortcut"+ref).innerText
+    editor.blocks.insert('paragraph', {
+      text: newText
+    });
+    const newBlockIndex = editor.blocks.getBlocksCount() - 1; // Assuming it's the last block
+    editor.caret.setToBlock(newBlockIndex, 'end');
 
+    const editorjsHolderElement = document.getElementById('editorjsHolder');
+    editorjsHolderElement.scrollTop = editorjsHolderElement.scrollHeight;
+  } catch {
+    console.warn("using transcript shortcut that doesn't exist")
+  }
+}
 
+function addToTranscriptList(text) {
+  if (text !== " "){
+    const holder = document.getElementById('voiceTransHolder');
+    if (holder) {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.style.marginBottom = '12px';
+      card.style.position = 'relative'; //🟡
+      card.innerHTML = `
+        <div class="card-body transcript">
+          <span class="gray" style="position: absolute; top: 0px; right: 5px;">
+          </span>
+          <p class="card-text">${text}</p>
+        </div>
+      `;
+      holder.insertBefore(card, holder.firstChild);
+      resetShortcutReferences()
+    }
 
+    function resetShortcutReferences(){
+      var cards = document.getElementsByClassName('transcript')
+      var nCardsToWrite = Math.min(cards.length,4)
+      var n = 0
+      for (var card of cards){
+        n = n + 1
+        if (n <= nCardsToWrite){
+          card.querySelector('span').innerText="⌥"+String(n+5)
+          card.querySelector('.card-text').id = "transShortcut"+String(n+5)
+        } else {
+          card.querySelector('span').innerText=""
+          card.querySelector('.card-text').id = ""
+        }
+      }
+    }
+  }
+}
+
+function loadTranscriptShortcutListener(){
+  window.addEventListener('keydown', function(event) {
+    if (event.altKey) {
+      if (event.code === 'Digit5') {
+        event.preventDefault();
+        document.getElementById('voiceTransToggle').click();
+      } else if (event.code === 'Digit6'){
+        event.preventDefault();
+        pushTranscriptToEditor('6')
+      } else if (event.code === 'Digit7'){
+        event.preventDefault();
+        pushTranscriptToEditor('7')
+      } else if (event.code === 'Digit8'){
+        event.preventDefault();
+        pushTranscriptToEditor('8')
+      } else if (event.code === 'Digit9'){
+        event.preventDefault();
+        pushTranscriptToEditor('9')
+      }
+    }
+  }, true);
+}
 
 if (currentASRBackend == 'asr_wsapi'){
-
+  document.getElementById('asr_wsapi').checked = true
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
   if (!SpeechRecognition) {
@@ -432,42 +500,7 @@ if (currentASRBackend == 'asr_wsapi'){
       }
     })
 
-    function pushTranscriptToEditor(ref){
-      try {
-        newText = document.getElementById("transShortcut"+ref).innerText
-        editor.blocks.insert('paragraph', {
-          text: newText
-        });
-        const newBlockIndex = editor.blocks.getBlocksCount() - 1; // Assuming it's the last block
-        editor.caret.setToBlock(newBlockIndex, 'end');
-
-        const editorjsHolderElement = document.getElementById('editorjsHolder');
-        editorjsHolderElement.scrollTop = editorjsHolderElement.scrollHeight;
-      } catch {
-        console.warn("using transcript shortcut that doesn't exist")
-      }
-    }
-
-    window.addEventListener('keydown', function(event) {
-      if (event.altKey) {
-        if (event.code === 'Digit5') {
-          event.preventDefault();
-          document.getElementById('voiceTransToggle').click();
-        } else if (event.code === 'Digit6'){
-          event.preventDefault();
-          pushTranscriptToEditor('6')
-        } else if (event.code === 'Digit7'){
-          event.preventDefault();
-          pushTranscriptToEditor('7')
-        } else if (event.code === 'Digit8'){
-          event.preventDefault();
-          pushTranscriptToEditor('8')
-        } else if (event.code === 'Digit9'){
-          event.preventDefault();
-          pushTranscriptToEditor('9')
-        }
-      }
-    }, true);
+    loadTranscriptShortcutListener()
 
     recognition.onresult = (event) => {
       let interimTranscript = '';
@@ -513,382 +546,250 @@ if (currentASRBackend == 'asr_wsapi'){
         }
       }
     }
-
-    function addToTranscriptList(text) {
-      if (text !== " "){
-        const holder = document.getElementById('voiceTransHolder');
-        if (holder) {
-          const card = document.createElement('div');
-          card.className = 'card';
-          card.style.marginBottom = '12px';
-          card.style.position = 'relative'; //🟡
-          card.innerHTML = `
-            <div class="card-body transcript">
-              <span class="gray" style="position: absolute; top: 0px; right: 5px;">
-              </span>
-              <p class="card-text">${text}</p>
-            </div>
-          `;
-          holder.insertBefore(card, holder.firstChild);
-          resetShortcutReferences()
-        }
-
-        function resetShortcutReferences(){
-          var cards = document.getElementsByClassName('transcript')
-          var nCardsToWrite = Math.min(cards.length,4)
-          var n = 0
-          for (var card of cards){
-            n = n + 1
-            if (n <= nCardsToWrite){
-              card.querySelector('span').innerText="⌥"+String(n+5)
-              card.querySelector('.card-text').id = "transShortcut"+String(n+5)
-            } else {
-              card.querySelector('span').innerText=""
-              card.querySelector('.card-text').id = ""
-            }
-          }
-        }
-      }
-    }
-
   }
 
 }
 
 if (currentASRBackend == 'asr_vb'){
-
+  document.getElementById('asr_vb').checked = true
   console.log('currentASRBackend == asr_vb')
+  microphonePermissions()
 
-//   async function init() {
-//     //const model = await Vosk.createModel('model.tar.gz');
-//     const model = await Vosk.createModel('./vosk_models/vosk-model-small-en-us-0.15.zip');
-//     //const model = await Vosk.createModel('./vosk_models/vosk-model-small-en-us-0.15.tar.gz');
+  var model = null
+  async function loadVoskModel(path){
+    model = await Vosk.createModel(path);
+    console.log('model loaded - '+String(path))
+  }
+  loadVoskModel('./vosk_models/vosk-model-small-en-us-0.15.zip')
+  var runInitBool = false
 
-//     const recognizer = new model.KaldiRecognizer();
-//     recognizer.on("result", (message) => {
-//         console.log(`Result: ${message.result.text}`);
-//     });
-//     recognizer.on("partialresult", (message) => {
-//         console.log(`Partial result: ${message.result.partial}`);
-//     });
-    
-//     const mediaStream = await navigator.mediaDevices.getUserMedia({
-//         video: false,
-//         audio: {
-//             echoCancellation: true,
-//             noiseSuppression: true,
-//             channelCount: 1,
-//             sampleRate: 16000
-//         },
-//     });
-    
-//     const audioContext = new AudioContext();
-//     const recognizerNode = audioContext.createScriptProcessor(4096, 1, 1)
-//     recognizerNode.onaudioprocess = (event) => {
-//         try {
-//             recognizer.acceptWaveform(event.inputBuffer)
-//         } catch (error) {
-//             console.error('acceptWaveform failed', error)
-//         }
-//     }
-//     const source = audioContext.createMediaStreamSource(mediaStream);
-//     source.connect(recognizerNode);
-// }
-
-// window.onload = init;
-
-// THIS CODE WORKS IN CHROME ONLY
-// function createAudioWorkletModule() {
-//     const processorCode = `
-//         class VoiceProcessor extends AudioWorkletProcessor {
-//             constructor() {
-//                 super();
-//             }
-            
-//             process(inputs, outputs, parameters) {
-//                 const input = inputs[0];
-                
-//                 if (input.length > 0) {
-//                     // Send the raw Float32Array input data to the main thread
-//                     this.port.postMessage({
-//                         type: 'audioData',
-//                         audioData: input[0]
-//                     });
-//                 }
-                
-//                 return true; // Keep the processor alive
-//             }
-//         }
-        
-//         registerProcessor('voice-processor', VoiceProcessor);
-//     `;
-    
-//     const blob = new Blob([processorCode], { type: 'application/javascript' });
-//     return URL.createObjectURL(blob);
-// }
-// async function init() {
-//     try {
-//         const sampleRate = 16000;
-
-//         // Load the model
-//         const model = await Vosk.createModel('./vosk_models/vosk-model-small-en-us-0.15.zip');
-        
-//         // Create recognizer with the required sampleRate
-//         const recognizer = new model.KaldiRecognizer(sampleRate);
-        
-//         // Set up event handlers
-//         recognizer.on("result", (message) => {
-//             console.log(`Result: ${message.result.text}`);
-//         });
-//         recognizer.on("partialresult", (message) => {
-//             console.log(`Partial result: ${message.result.partial}`);
-//         });
-        
-//         // Get media stream
-//         const mediaStream = await navigator.mediaDevices.getUserMedia({
-//             video: false,
-//             audio: {
-//                 echoCancellation: true,
-//                 noiseSuppression: true,
-//                 channelCount: 1,
-//                 sampleRate: sampleRate
-//             },
-//         });
-        
-//         // Create audio context
-//         const audioContext = new AudioContext({ sampleRate: sampleRate });
-        
-//         if (audioContext.state === 'suspended') {
-//             await audioContext.resume();
-//         }
-        
-//         if (audioContext.audioWorklet) {
-//             try {
-//                 await audioContext.audioWorklet.addModule(createAudioWorkletModule());
-                
-//                 const recognizerNode = new AudioWorkletNode(audioContext, 'voice-processor');
-                
-//                 // --- THIS IS THE FIX ---
-//                 // Revert to creating an AudioBuffer, as this version of Vosk requires it.
-//                 recognizerNode.port.onmessage = (event) => {
-//                     try {
-//                         if (event.data.type === 'audioData') {
-//                             // Create AudioBuffer from the Float32Array data
-//                             const audioData = event.data.audioData;
-//                             const audioBuffer = audioContext.createBuffer(1, audioData.length, audioContext.sampleRate);
-//                             audioBuffer.copyToChannel(audioData, 0);
-                            
-//                             // Pass the newly created AudioBuffer to the recognizer
-//                             recognizer.acceptWaveform(audioBuffer);
-//                         }
-//                     } catch (error) {
-//                         console.error('acceptWaveform failed:', error);
-//                     }
-//                 };
-                
-//                 const source = audioContext.createMediaStreamSource(mediaStream);
-//                 source.connect(recognizerNode);
-                
-//                 console.log('Voice recognition initialized successfully with AudioWorklet');
-                
-//             } catch (workletError) {
-//                 console.warn('AudioWorklet failed, falling back to ScriptProcessor:', workletError);
-//                 useScriptProcessor();
-//             }
-//         } else {
-//             console.warn('AudioWorklet not supported, using ScriptProcessor');
-//             useScriptProcessor();
-//         }
-        
-//         // Fallback function using ScriptProcessor (this part was already correct)
-//         function useScriptProcessor() {
-//             const recognizerNode = audioContext.createScriptProcessor(4096, 1, 1);
-            
-//             recognizerNode.onaudioprocess = (event) => {
-//                 try {
-//                     recognizer.acceptWaveform(event.inputBuffer);
-//                 } catch (error) {
-//                     console.error('acceptWaveform failed:', error);
-//                 }
-//             };
-            
-//             const source = audioContext.createMediaStreamSource(mediaStream);
-//             source.connect(recognizerNode);
-            
-//             const gainNode = audioContext.createGain();
-//             gainNode.gain.value = 0;
-//             recognizerNode.connect(gainNode);
-//             gainNode.connect(audioContext.destination);
-            
-//             console.log('Voice recognition initialized successfully with ScriptProcessor');
-//         }
-        
-//     } catch (error) {
-//         console.error('Failed to initialize voice recognition:', error);
-        
-//         if (error.name === 'NotAllowedError') {
-//             console.error('Microphone access denied. Please allow microphone access and try again.');
-//         } else if (error.name === 'NotFoundError') {
-//             console.error('No microphone found. Please connect a microphone and try again.');
-//         } else if (error.message && error.message.includes('model')) {
-//             console.error('Failed to load Vosk model. Please check the model path and file.');
-//         }
-//     }
-// }
-// document.addEventListener('DOMContentLoaded', init);
-
-// Function to create the AudioWorklet processor module with robust, buffered resampling
-function createAudioWorkletModule() {
-    const processorCode = `
-        class VoiceProcessor extends AudioWorkletProcessor {
-            constructor(options) {
-                super();
-                this.inputSampleRate = options.processorOptions.inputSampleRate;
-                this.outputSampleRate = options.processorOptions.outputSampleRate;
-                this.resampleRatio = this.inputSampleRate / this.outputSampleRate;
-                
-                // Internal buffer to hold audio data between processing calls
-                this.buffer = new Float32Array(0);
-            }
-
-            // This method combines the internal buffer with new data
-            append(newData) {
-                const oldData = this.buffer;
-                this.buffer = new Float32Array(oldData.length + newData.length);
-                this.buffer.set(oldData, 0);
-                this.buffer.set(newData, oldData.length);
-            }
-
-            process(inputs, outputs, parameters) {
-                const input = inputs[0];
-
-                if (input.length > 0) {
-                    // Append the new audio data to our internal buffer
-                    this.append(input[0]);
-
-                    // Calculate how many full output samples we can produce
-                    const outputFrameCount = Math.floor(this.buffer.length / this.resampleRatio);
-
-                    // If we can't produce a full sample, wait for more data
-                    if (outputFrameCount === 0) {
-                        return true;
-                    }
-
-                    // Create the output buffer and perform resampling
-                    const outputData = new Float32Array(outputFrameCount);
-                    for (let i = 0; i < outputFrameCount; i++) {
-                        const inputIndex = i * this.resampleRatio;
-                        const indexPrev = Math.floor(inputIndex);
-                        const indexNext = Math.min(indexPrev + 1, this.buffer.length - 1);
-                        const fraction = inputIndex - indexPrev;
-
-                        // Linear interpolation for quality
-                        outputData[i] = this.buffer[indexPrev] + (this.buffer[indexNext] - this.buffer[indexPrev]) * fraction;
-                    }
-
-                    // Calculate how many input samples were consumed
-                    const consumedInputFrameCount = Math.ceil(outputFrameCount * this.resampleRatio);
-                    
-                    // Remove the consumed data from the internal buffer, keeping the leftovers
-                    this.buffer = this.buffer.slice(consumedInputFrameCount);
-
-                    // Send the resampled data back to the main thread
-                    this.port.postMessage({
-                        type: 'audioData',
-                        audioData: outputData
-                    });
-                }
-                
-                return true; // Keep the processor alive
-            }
-        }
-        
-        registerProcessor('voice-processor', VoiceProcessor);
-    `;
-    
-    const blob = new Blob([processorCode], { type: 'application/javascript' });
-    return URL.createObjectURL(blob);
-}
-
-// Update the init function to get sample rate properly
-async function init() {
-    try {
-        const voskSampleRate = 16000;
-
-        // Load model
-        const model = await Vosk.createModel('./vosk_models/vosk-model-small-en-us-0.15.zip');
-        const recognizer = new model.KaldiRecognizer(voskSampleRate);
-        
-        recognizer.on("result", (message) => console.log(`Result: ${message.result.text}`));
-        // recognizer.on("partialresult", (message) => console.log(`Partial result: ${message.result.partial}`));
-        
-        // Get media stream
-        const mediaStream = await navigator.mediaDevices.getUserMedia({
-            video: false,
-            audio: {
-                echoCancellation: true,
-                noiseSuppression: true,
-                channelCount: 1,
-                sampleRate: voskSampleRate
-            },
-        });
-
-        // Create AudioContext and get actual sample rate
-        const audioContext = new AudioContext();
-        if (audioContext.state === 'suspended') await audioContext.resume();
-        
-        // Use audioContext's sample rate instead of track settings
-        const actualSampleRate = audioContext.sampleRate;
-        const source = audioContext.createMediaStreamSource(mediaStream);
-        
-        if (audioContext.audioWorklet) {
-            await audioContext.audioWorklet.addModule(createAudioWorkletModule());
-            
-            const recognizerNode = new AudioWorkletNode(audioContext, 'voice-processor', {
-                processorOptions: {
-                    inputSampleRate: actualSampleRate,
-                    outputSampleRate: voskSampleRate
-                }
-            });
-
-            recognizerNode.port.onmessage = (event) => {
-                try {
-                    if (event.data.type === 'audioData') {
-                        const audioData = event.data.audioData;
-                        
-                        // Skip empty buffers
-                        if (audioData.length === 0) {
-                            console.debug('Skipped empty audio buffer');
-                            return;
-                        }
-                        
-                        const audioBuffer = audioContext.createBuffer(1, audioData.length, voskSampleRate);
-                        audioBuffer.copyToChannel(audioData, 0);
-                        recognizer.acceptWaveform(audioBuffer);
-                    }
-                } catch (error) {
-                    console.error('acceptWaveform failed:', error);
-                }
-            };
-            
-            source.connect(recognizerNode);
-            console.log(`Voice recognition initialized. Native SR: ${actualSampleRate}, Vosk SR: ${voskSampleRate}.`);
-        } else {
-            console.error('AudioWorklet not supported');
-        }
-    } catch (error) {
-        console.error('Initialization failed:', error);
-        // Error handling remains the same
+  const voiceTransToggleElement = document.getElementById('voiceTransToggle');
+  const transcriptDiv = document.getElementById('interimTranscript');
+  voiceTransToggleElement.addEventListener('click', async () => {
+    if(voiceTransToggleElement.checked){
+      document.getElementById('voiceTransToggleText').innerHTML = 'Speech-to-Text On <span class="gray">⌥5<span>'
+      if (!runInitBool){
+        runInitBool = true
+         await initVosk()
+      }
+      
+      recognizer.on("result", (message) => vbHandleResult(message));
+      recognizer.on("partialresult", (message) => vbHandleResult(message));
+      
+      transcriptDiv.textContent = 'Listening to device microphone...';
+      userStopped = false
+    } else {
+      document.getElementById('voiceTransToggleText').innerHTML = 'Speech-to-Text Off <span class="gray">⌥5<span>'
+      userStopped = true
+      runInitBool = false
+      await stopRecognizer()
+      setTimeout(() => {
+        transcriptDiv.textContent = 'Stopped listening to device microphone.';
+      },1000)
     }
+  })
+
+  function vbHandleResult(message){
+       
+    if (message.event == 'partialresult'){
+      if (message.result.partial == ''){
+        transcriptDiv.textContent = 'Listening to device microphone...'
+      } else {
+        transcriptDiv.textContent = message.result.partial
+      }
+    } 
+
+    if (message.event == 'result'){
+      if (message.result.text !== ''){
+        addToTranscriptList(message.result.text)
+        transcriptDiv.textContent = ""
+      }
+    }
+
+  }
+
+  loadTranscriptShortcutListener()
+
+  // Function to create the AudioWorklet processor module with robust, buffered resampling
+  function createAudioWorkletModule() {
+      const processorCode = `
+          class VoiceProcessor extends AudioWorkletProcessor {
+              constructor(options) {
+                  super();
+                  this.inputSampleRate = options.processorOptions.inputSampleRate;
+                  this.outputSampleRate = options.processorOptions.outputSampleRate;
+                  this.resampleRatio = this.inputSampleRate / this.outputSampleRate;
+                  
+                  // Internal buffer to hold audio data between processing calls
+                  this.buffer = new Float32Array(0);
+              }
+
+              // This method combines the internal buffer with new data
+              append(newData) {
+                  const oldData = this.buffer;
+                  this.buffer = new Float32Array(oldData.length + newData.length);
+                  this.buffer.set(oldData, 0);
+                  this.buffer.set(newData, oldData.length);
+              }
+
+              process(inputs, outputs, parameters) {
+                  const input = inputs[0];
+
+                  if (input.length > 0) {
+                      // Append the new audio data to our internal buffer
+                      this.append(input[0]);
+
+                      // Calculate how many full output samples we can produce
+                      const outputFrameCount = Math.floor(this.buffer.length / this.resampleRatio);
+
+                      // If we can't produce a full sample, wait for more data
+                      if (outputFrameCount === 0) {
+                          return true;
+                      }
+
+                      // Create the output buffer and perform resampling
+                      const outputData = new Float32Array(outputFrameCount);
+                      for (let i = 0; i < outputFrameCount; i++) {
+                          const inputIndex = i * this.resampleRatio;
+                          const indexPrev = Math.floor(inputIndex);
+                          const indexNext = Math.min(indexPrev + 1, this.buffer.length - 1);
+                          const fraction = inputIndex - indexPrev;
+
+                          // Linear interpolation for quality
+                          outputData[i] = this.buffer[indexPrev] + (this.buffer[indexNext] - this.buffer[indexPrev]) * fraction;
+                      }
+
+                      // Calculate how many input samples were consumed
+                      const consumedInputFrameCount = Math.ceil(outputFrameCount * this.resampleRatio);
+                      
+                      // Remove the consumed data from the internal buffer, keeping the leftovers
+                      this.buffer = this.buffer.slice(consumedInputFrameCount);
+
+                      // Send the resampled data back to the main thread
+                      this.port.postMessage({
+                          type: 'audioData',
+                          audioData: outputData
+                      });
+                  }
+                  
+                  return true; // Keep the processor alive
+              }
+          }
+          
+          registerProcessor('voice-processor', VoiceProcessor);
+      `;
+      
+      const blob = new Blob([processorCode], { type: 'application/javascript' });
+      return URL.createObjectURL(blob);
+  }
+
+  var recognizer = null
+  var mediaStream = null
+  var audioContext = null
+  var source = null
+
+  async function stopRecognizer() {
+    try {
+        // Step 1: Stop the media stream tracks
+        if (mediaStream) {
+            mediaStream.getTracks().forEach(track => track.stop());
+            console.log("Media stream tracks stopped.");
+        }
+
+        // Step 2: Disconnect the audio source
+        if (source) {
+            source.disconnect();
+            console.log("Audio source disconnected.");
+        }
+
+        // Step 3: Close the AudioContext
+        if (audioContext) {
+            await audioContext.close();
+            console.log("AudioContext closed.");
+        }
+
+        // Step 4: Clear the recognizer reference
+        if (recognizer) {
+            recognizer = null; // Prevent further use
+            console.log("Recognizer reference cleared.");
+        }
+
+        console.log("Recognizer stopped and resources cleaned up.");
+    } catch (error) {
+        console.error("Error stopping recognizer:", error);
+    }
+  }
+  
+  async function initVosk() {
+      try {
+          const voskSampleRate = 16000;
+
+          // Load model
+          
+          recognizer = new model.KaldiRecognizer(voskSampleRate);
+          
+          // Get media stream
+          mediaStream = await navigator.mediaDevices.getUserMedia({
+              video: false,
+              audio: {
+                  echoCancellation: false,
+                  noiseSuppression: false,
+                  autoGainControl: true,
+                  channelCount: 1,
+                  sampleRate: voskSampleRate
+              },
+          });
+
+          // Create AudioContext and get actual sample rate
+          audioContext = new AudioContext();
+          if (audioContext.state === 'suspended') await audioContext.resume();
+          
+          // Use audioContext's sample rate instead of track settings
+          const actualSampleRate = audioContext.sampleRate;
+          source = audioContext.createMediaStreamSource(mediaStream);
+          
+          if (audioContext.audioWorklet) {
+              await audioContext.audioWorklet.addModule(createAudioWorkletModule());
+              
+              const recognizerNode = new AudioWorkletNode(audioContext, 'voice-processor', {
+                  processorOptions: {
+                      inputSampleRate: actualSampleRate,
+                      outputSampleRate: voskSampleRate
+                  }
+              });
+
+              recognizerNode.port.onmessage = (event) => {
+                  try {
+                      if (event.data.type === 'audioData') {
+                          const audioData = event.data.audioData;
+                          
+                          // Skip empty buffers
+                          if (audioData.length === 0) {
+                              console.debug('Skipped empty audio buffer');
+                              return;
+                          }
+                          
+                          const audioBuffer = audioContext.createBuffer(1, audioData.length, voskSampleRate);
+                          audioBuffer.copyToChannel(audioData, 0);
+                          recognizer.acceptWaveform(audioBuffer);
+                      }
+                  } catch (error) {
+                      console.error('acceptWaveform failed:', error);
+                  }
+              };
+              
+              source.connect(recognizerNode);
+              console.log(`Voice recognition initialized. Native SR: ${actualSampleRate}, Vosk SR: ${voskSampleRate}.`);
+          } else {
+              console.error('AudioWorklet not supported');
+          }
+      } catch (error) {
+          console.error('Initialization failed:', error);
+          // Error handling remains the same
+      }
+  }
+
 }
-document.addEventListener('DOMContentLoaded', init);
-
-
-
-
-}
-
-
 
 async function microphonePermissions(){
 
@@ -927,8 +828,6 @@ async function microphonePermissions(){
     }
   
 }
-
-
 
 // Loading and Saving Notes
 
