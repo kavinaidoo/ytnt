@@ -50,6 +50,39 @@ const editor = new EditorJS({
   }
 });
 
+// Initial loading
+
+if (/Android|iPhone|iPad/i.test(navigator.userAgent) || window.innerWidth <= 500){
+  offCanvasMobileDeviceBootstrap.show() // detecting mobile devices
+}
+
+const tag = document.createElement('script');
+tag.src = `https://www.youtube.com/iframe_api?ts=${new Date().getTime()}`; // YT iframe api
+const firstScriptTag = document.getElementsByTagName('script')[0];
+firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+var currentASRBackend = localStorage.getItem('LS_asrBackend')
+if (!currentASRBackend){
+  currentASRBackend = 'asr_wsapi'
+}
+
+var currentYTNTMode = localStorage.getItem('LS_ytntMode')
+if ((currentYTNTMode == null) || (currentYTNTMode == 'mode_yt')){ // normal (YouTube) mode
+  document.getElementById('mode_yt').checked = true
+
+} else if (currentYTNTMode == 'mode_no_yt'){ // general voice transcription mode
+  document.getElementById('mode_no_yt').checked = true
+  document.getElementById('loadVideoInputGroup').remove()
+  document.getElementById('playPauseButton').remove()
+  document.getElementById('back10Button').remove()
+  document.getElementById('back30Button').remove()
+  document.getElementById('forward5Button').remove()
+  document.getElementById('distractionButton').remove()
+  introTextElement.style = "display:none"
+  vidAndEditorElement.style = "display:block"
+  document.querySelector('.video-container').remove()
+}
+
 // Functions
 
 function loadYTPlayer(videoId,startTime){
@@ -235,17 +268,6 @@ function htmlToDocx(element) {
   return children;
 }
 
-// Initial loading
-
-if (/Android|iPhone|iPad/i.test(navigator.userAgent) || window.innerWidth <= 768){
-  offCanvasMobileDeviceBootstrap.show() // detecting mobile devices
-}
-
-const tag = document.createElement('script');
-tag.src = `https://www.youtube.com/iframe_api?ts=${new Date().getTime()}`;
-const firstScriptTag = document.getElementsByTagName('script')[0];
-firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-
 // Events
 
 loadVideoTextElement.addEventListener("keyup", ({key}) => { // listens for enter pressed
@@ -366,93 +388,60 @@ distractionButtonElement.addEventListener('click', () => {
 
 // Speech Recognition
 
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+function pushTranscriptToEditor(ref){
+  try {
+    var newText = document.getElementById("transShortcut"+ref).innerText
+    editor.blocks.insert('paragraph', {
+      text: newText
+    });
+    const newBlockIndex = editor.blocks.getBlocksCount() - 1; // Assuming it's the last block
+    editor.caret.setToBlock(newBlockIndex, 'end');
 
-async function speechRecognitionPermissions(){
-  if (!SpeechRecognition) {
-    document.getElementById('interimTranscript').innerText = 'Your browser does not support Speech-to-Text. Try using Chrome or Edge. (Web Speech API not supported)'
-    var requestVoicePermissionButtonElement =  document.getElementById('requestVoicePermissionButton')
-    requestVoicePermissionButtonElement.style = 'display:none'
-  } else {
+    const editorjsHolderElement = document.getElementById('editorjsHolder');
+    editorjsHolderElement.scrollTop = editorjsHolderElement.scrollHeight;
+  } catch {
+    console.warn("using transcript shortcut that doesn't exist")
+  }
+}
 
-    var permissionStatusObject = await navigator.permissions.query({ name: 'microphone' })
-    var permissionStatus = permissionStatusObject.state
+function addToTranscriptList(text) {
+  if (text !== " "){
+    const holder = document.getElementById('voiceTransHolder');
+    if (holder) {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.style.marginBottom = '12px';
+      card.style.position = 'relative'; //🟡
+      card.innerHTML = `
+        <div class="card-body transcript">
+          <span class="gray" style="position: absolute; top: 0px; right: 5px;">
+          </span>
+          <p class="card-text">${text}</p>
+        </div>
+      `;
+      holder.insertBefore(card, holder.firstChild);
+      resetShortcutReferences()
+    }
 
-    if (permissionStatus == 'denied'){
-      document.getElementById('interimTranscript').innerHTML = 'Speech-to-Text uses your browser and device microphone to convert speech to text. Ensure that the video is playing loudly enough that your device can "hear" it. It will also convert your own speech. This is an experimental feature.<br><br>Allow the Microphone permission in your browser settings and reload the page to use this feature.'
-      document.getElementById('requestVoicePermissionButton').style = 'display:none'
-    } else if (permissionStatus == 'prompt'){
-      document.getElementById('interimTranscript').innerHTML = 'Speech-to-Text uses your browser and device microphone to convert speech to text. Ensure that the video is playing loudly enough that your device can "hear" it. It will also convert your own speech. This is an experimental feature.<br><br>Click "Request Microphone Permission" and allow to use this feature.'
-      document.getElementById('voiceTransToggle').disabled = true;
-      document.getElementById('voiceTransToggleText').innerText = 'Speech-to-Text Disabled'
-
-      var requestVoicePermissionButtonElement =  document.getElementById('requestVoicePermissionButton')
-      
-      requestVoicePermissionButtonElement.addEventListener('click', async () => {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          requestVoicePermissionButtonElement.style = 'display:none'
-          document.getElementById('interimTranscript').innerText = 'Speech-to-Text uses your browser and device microphone to convert speech to text. Ensure that the video is playing loudly enough that your device can "hear" it. It will also convert your own speech.'
-          document.getElementById('voiceTransToggle').disabled = false;
-          document.getElementById('voiceTransToggleText').innerHTML = 'Speech-to-Text Off <span class="gray">⌥5<span>'
-        } catch (error) {
-          document.getElementById('interimTranscript').innerHTML = 'Speech-to-Text uses your browser and device microphone to convert speech to text. Ensure that the video is playing loudly enough that your device can "hear" it. It will also convert your own speech. This is an experimental feature.<br><br>Allow the Microphone permission in your browser settings and reload the page to use this feature.'
-          document.getElementById('requestVoicePermissionButton').style = 'display:none'
+    function resetShortcutReferences(){
+      var cards = document.getElementsByClassName('transcript')
+      var nCardsToWrite = Math.min(cards.length,4)
+      var n = 0
+      for (var card of cards){
+        n = n + 1
+        if (n <= nCardsToWrite){
+          card.querySelector('span').innerText="⌥"+String(n+5)
+          card.querySelector('.card-text').id = "transShortcut"+String(n+5)
+        } else {
+          card.querySelector('span').innerText=""
+          card.querySelector('.card-text').id = ""
         }
-      })
-
-    } else {
-      document.getElementById('interimTranscript').innerText = 'Speech-to-Text uses your browser and device microphone to convert speech to text. Ensure that the video is playing loudly enough that your device can "hear" it. It will also convert your own speech. This is an experimental feature.'
-      document.getElementById('voiceTransToggle').disabled = false;
-      document.getElementById('voiceTransToggleText').innerHTML = 'Speech-to-Text Off <span class="gray">⌥5<span>'
-      var requestVoicePermissionButtonElement =  document.getElementById('requestVoicePermissionButton')
-      requestVoicePermissionButtonElement.style = 'display:none'
+      }
     }
   }
 }
-speechRecognitionPermissions()
 
-if (SpeechRecognition) {
-  const recognition = new SpeechRecognition();
-  recognition.continuous = true;
-  recognition.interimResults = true;
-  recognition.lang = 'en-US';
-
-  const voiceTransToggleElement = document.getElementById('voiceTransToggle');
-  const transcriptDiv = document.getElementById('interimTranscript');
-
-  var userStopped = false
-
-  voiceTransToggleElement.addEventListener('click', () => {
-    if(voiceTransToggleElement.checked){
-      document.getElementById('voiceTransToggleText').innerHTML = 'Speech-to-Text On <span class="gray">⌥5<span>'
-      recognition.start();
-      transcriptDiv.textContent = 'Listening to device microphone...';
-      userStopped = false
-    } else {
-      document.getElementById('voiceTransToggleText').innerHTML = 'Speech-to-Text Off <span class="gray">⌥5<span>'
-      userStopped = true
-      recognition.stop();
-      transcriptDiv.textContent = 'Stopped listening to device microphone.';
-    }
-  })
-
-  function pushTranscriptToEditor(ref){
-    try {
-      newText = document.getElementById("transShortcut"+ref).innerText
-      editor.blocks.insert('paragraph', {
-        text: newText
-      });
-      const newBlockIndex = editor.blocks.getBlocksCount() - 1; // Assuming it's the last block
-      editor.caret.setToBlock(newBlockIndex, 'end');
-
-      const editorjsHolderElement = document.getElementById('editorjsHolder');
-      editorjsHolderElement.scrollTop = editorjsHolderElement.scrollHeight;
-    } catch {
-      console.warn("using transcript shortcut that doesn't exist")
-    }
-  }
-
+function loadTranscriptShortcutListener(){
   window.addEventListener('keydown', function(event) {
     if (event.altKey) {
       if (event.code === 'Digit5') {
@@ -473,89 +462,371 @@ if (SpeechRecognition) {
       }
     }
   }, true);
+}
 
-  recognition.onresult = (event) => {
-    let interimTranscript = '';
-    let finalTranscript = '';
+if (currentASRBackend == 'asr_wsapi'){
+  document.getElementById('asr_wsapi').checked = true
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-    for (let i = event.resultIndex; i < event.results.length; i++) {
-      const transcript = event.results[i][0].transcript;
-      if (event.results[i].isFinal) {
-        finalTranscript += transcript + ' ';
+  if (!SpeechRecognition) {
+    document.getElementById('interimTranscript').innerText = 'Your browser does not support Speech-to-Text. Try using Chrome or Edge. (Web Speech API not supported)'
+    var requestVoicePermissionButtonElement =  document.getElementById('requestVoicePermissionButton')
+    requestVoicePermissionButtonElement.remove()
+  } 
+
+  if (SpeechRecognition) {
+    microphonePermissions()
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    const voiceTransToggleElement = document.getElementById('voiceTransToggle');
+    const transcriptDiv = document.getElementById('interimTranscript');
+
+    var userStopped = false
+
+    voiceTransToggleElement.addEventListener('click', () => {
+      if(voiceTransToggleElement.checked){
+        document.getElementById('voiceTransToggleText').innerHTML = 'Speech-to-Text On <span class="gray">⌥5<span>'
+        recognition.start();
+        transcriptDiv.textContent = 'Listening to device microphone...';
+        userStopped = false
       } else {
-        interimTranscript += transcript;
+        document.getElementById('voiceTransToggleText').innerHTML = 'Speech-to-Text Off <span class="gray">⌥5<span>'
+        userStopped = true
+        recognition.stop();
+        transcriptDiv.textContent = 'Stopped listening to device microphone.';
       }
-    }
+    })
 
-    transcriptDiv.textContent = finalTranscript + interimTranscript;
+    loadTranscriptShortcutListener()
 
-    if(finalTranscript.length > 0){
-        addToTranscriptList(finalTranscript)
-        transcriptDiv.textContent = ""
-    }
-  
-  }
+    recognition.onresult = (event) => {
+      let interimTranscript = '';
+      let finalTranscript = '';
 
-  recognition.onerror = (event) => {
-    console.error('Speech recognition error:', event.error);
-    transcriptDiv.innerText = `Error: ${event.error}`;
-  }
-
-  recognition.onend = (e) => {
-    console.log('- recognition.onend')
-    voiceTransToggleElement.checked = false
-    if (!transcriptDiv.textContent || transcriptDiv.textContent === 'Listening to video audio...') {
-      transcriptDiv.textContent = 'Stopped listening to device microphone.';
-    }
-    if (userStopped == false){
-      try {
-      console.warn('userStopped == false - trying to restart')
-      recognition.start();
-      voiceTransToggleElement.checked = true
-      console.warn('userStopped == false - restart success')
-      } catch {
-        console.error('userStopped == false - restart failed')
-      }
-    }
-  }
-
-  function addToTranscriptList(text) {
-    if (text !== " "){
-      const holder = document.getElementById('voiceTransHolder');
-      if (holder) {
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.style.marginBottom = '12px';
-        card.style.position = 'relative'; //🟡
-        card.innerHTML = `
-          <div class="card-body transcript">
-            <span class="gray" style="position: absolute; top: 0px; right: 5px;">
-            </span>
-            <p class="card-text">${text}</p>
-          </div>
-        `;
-        holder.insertBefore(card, holder.firstChild);
-        resetShortcutReferences()
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript + ' ';
+        } else {
+          interimTranscript += transcript;
+        }
       }
 
-      function resetShortcutReferences(){
-        var cards = document.getElementsByClassName('transcript')
-        var nCardsToWrite = Math.min(cards.length,4)
-        var n = 0
-        for (var card of cards){
-          n = n + 1
-          if (n <= nCardsToWrite){
-            card.querySelector('span').innerText="⌥"+String(n+5)
-            card.querySelector('.card-text').id = "transShortcut"+String(n+5)
-          } else {
-            card.querySelector('span').innerText=""
-            card.querySelector('.card-text').id = ""
-          }
+      transcriptDiv.textContent = finalTranscript + interimTranscript;
+
+      if(finalTranscript.length > 0){
+          addToTranscriptList(finalTranscript)
+          transcriptDiv.textContent = ""
+      }
+    
+    }
+
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error:', event.error);
+      transcriptDiv.innerText = `Error: ${event.error}`;
+    }
+
+    recognition.onend = (e) => {
+      console.log('- recognition.onend')
+      voiceTransToggleElement.checked = false
+      if (!transcriptDiv.textContent || transcriptDiv.textContent === 'Listening to video audio...') {
+        transcriptDiv.textContent = 'Stopped listening to device microphone.';
+      }
+      if (userStopped == false){
+        try {
+        console.warn('userStopped == false - trying to restart')
+        recognition.start();
+        voiceTransToggleElement.checked = true
+        console.warn('userStopped == false - restart success')
+        } catch {
+          console.error('userStopped == false - restart failed')
         }
       }
     }
   }
 
+}
+
+if (currentASRBackend == 'asr_vb'){
+  document.getElementById('asr_vb').checked = true
+  console.log('currentASRBackend == asr_vb')
+  microphonePermissions()
+
+  var model = null
+  async function loadVoskModel(path){
+    model = await Vosk.createModel(path);
+    console.log('model loaded - '+String(path))
+  }
+  loadVoskModel('./vosk_models/vosk-model-small-en-us-0.15.zip')
+  var runInitBool = false
+
+  const voiceTransToggleElement = document.getElementById('voiceTransToggle');
+  const transcriptDiv = document.getElementById('interimTranscript');
+  voiceTransToggleElement.addEventListener('click', async () => {
+    if(voiceTransToggleElement.checked){
+      document.getElementById('voiceTransToggleText').innerHTML = 'Speech-to-Text On <span class="gray">⌥5<span>'
+      if (!runInitBool){
+        runInitBool = true
+         await initVosk()
+      }
+      
+      recognizer.on("result", (message) => vbHandleResult(message));
+      recognizer.on("partialresult", (message) => vbHandleResult(message));
+      
+      transcriptDiv.textContent = 'Listening to device microphone...';
+      userStopped = false
+    } else {
+      document.getElementById('voiceTransToggleText').innerHTML = 'Speech-to-Text Off <span class="gray">⌥5<span>'
+      userStopped = true
+      runInitBool = false
+      await stopRecognizer()
+      setTimeout(() => {
+        transcriptDiv.textContent = 'Stopped listening to device microphone.';
+      },1000)
+    }
+  })
+
+  function vbHandleResult(message){
+       
+    if (message.event == 'partialresult'){
+      if (message.result.partial == ''){
+        transcriptDiv.textContent = 'Listening to device microphone...'
+      } else {
+        transcriptDiv.textContent = message.result.partial
+      }
+    } 
+
+    if (message.event == 'result'){
+      if (message.result.text !== ''){
+        addToTranscriptList(message.result.text)
+        transcriptDiv.textContent = ""
+      }
+    }
+
+  }
+
+  loadTranscriptShortcutListener()
+
+  // Function to create the AudioWorklet processor module with robust, buffered resampling
+  function createAudioWorkletModule() {
+      const processorCode = `
+          class VoiceProcessor extends AudioWorkletProcessor {
+              constructor(options) {
+                  super();
+                  this.inputSampleRate = options.processorOptions.inputSampleRate;
+                  this.outputSampleRate = options.processorOptions.outputSampleRate;
+                  this.resampleRatio = this.inputSampleRate / this.outputSampleRate;
+                  
+                  // Internal buffer to hold audio data between processing calls
+                  this.buffer = new Float32Array(0);
+              }
+
+              // This method combines the internal buffer with new data
+              append(newData) {
+                  const oldData = this.buffer;
+                  this.buffer = new Float32Array(oldData.length + newData.length);
+                  this.buffer.set(oldData, 0);
+                  this.buffer.set(newData, oldData.length);
+              }
+
+              process(inputs, outputs, parameters) {
+                  const input = inputs[0];
+
+                  if (input.length > 0) {
+                      // Append the new audio data to our internal buffer
+                      this.append(input[0]);
+
+                      // Calculate how many full output samples we can produce
+                      const outputFrameCount = Math.floor(this.buffer.length / this.resampleRatio);
+
+                      // If we can't produce a full sample, wait for more data
+                      if (outputFrameCount === 0) {
+                          return true;
+                      }
+
+                      // Create the output buffer and perform resampling
+                      const outputData = new Float32Array(outputFrameCount);
+                      for (let i = 0; i < outputFrameCount; i++) {
+                          const inputIndex = i * this.resampleRatio;
+                          const indexPrev = Math.floor(inputIndex);
+                          const indexNext = Math.min(indexPrev + 1, this.buffer.length - 1);
+                          const fraction = inputIndex - indexPrev;
+
+                          // Linear interpolation for quality
+                          outputData[i] = this.buffer[indexPrev] + (this.buffer[indexNext] - this.buffer[indexPrev]) * fraction;
+                      }
+
+                      // Calculate how many input samples were consumed
+                      const consumedInputFrameCount = Math.ceil(outputFrameCount * this.resampleRatio);
+                      
+                      // Remove the consumed data from the internal buffer, keeping the leftovers
+                      this.buffer = this.buffer.slice(consumedInputFrameCount);
+
+                      // Send the resampled data back to the main thread
+                      this.port.postMessage({
+                          type: 'audioData',
+                          audioData: outputData
+                      });
+                  }
+                  
+                  return true; // Keep the processor alive
+              }
+          }
+          
+          registerProcessor('voice-processor', VoiceProcessor);
+      `;
+      
+      const blob = new Blob([processorCode], { type: 'application/javascript' });
+      return URL.createObjectURL(blob);
+  }
+
+  var recognizer = null
+  var mediaStream = null
+  var audioContext = null
+  var source = null
+
+  async function stopRecognizer() {
+    try {
+        // Step 1: Stop the media stream tracks
+        if (mediaStream) {
+            mediaStream.getTracks().forEach(track => track.stop());
+            console.log("Media stream tracks stopped.");
+        }
+
+        // Step 2: Disconnect the audio source
+        if (source) {
+            source.disconnect();
+            console.log("Audio source disconnected.");
+        }
+
+        // Step 3: Close the AudioContext
+        if (audioContext) {
+            await audioContext.close();
+            console.log("AudioContext closed.");
+        }
+
+        // Step 4: Clear the recognizer reference
+        if (recognizer) {
+            recognizer = null; // Prevent further use
+            console.log("Recognizer reference cleared.");
+        }
+
+        console.log("Recognizer stopped and resources cleaned up.");
+    } catch (error) {
+        console.error("Error stopping recognizer:", error);
+    }
+  }
+  
+  async function initVosk() {
+      try {
+          const voskSampleRate = 16000;
+
+          // Load model
+          
+          recognizer = new model.KaldiRecognizer(voskSampleRate);
+          
+          // Get media stream
+          mediaStream = await navigator.mediaDevices.getUserMedia({
+              video: false,
+              audio: {
+                  echoCancellation: false,
+                  noiseSuppression: false,
+                  autoGainControl: true,
+                  channelCount: 1,
+                  sampleRate: voskSampleRate
+              },
+          });
+
+          // Create AudioContext and get actual sample rate
+          audioContext = new AudioContext();
+          if (audioContext.state === 'suspended') await audioContext.resume();
+          
+          // Use audioContext's sample rate instead of track settings
+          const actualSampleRate = audioContext.sampleRate;
+          source = audioContext.createMediaStreamSource(mediaStream);
+          
+          if (audioContext.audioWorklet) {
+              await audioContext.audioWorklet.addModule(createAudioWorkletModule());
+              
+              const recognizerNode = new AudioWorkletNode(audioContext, 'voice-processor', {
+                  processorOptions: {
+                      inputSampleRate: actualSampleRate,
+                      outputSampleRate: voskSampleRate
+                  }
+              });
+
+              recognizerNode.port.onmessage = (event) => {
+                  try {
+                      if (event.data.type === 'audioData') {
+                          const audioData = event.data.audioData;
+                          
+                          // Skip empty buffers
+                          if (audioData.length === 0) {
+                              console.debug('Skipped empty audio buffer');
+                              return;
+                          }
+                          
+                          const audioBuffer = audioContext.createBuffer(1, audioData.length, voskSampleRate);
+                          audioBuffer.copyToChannel(audioData, 0);
+                          recognizer.acceptWaveform(audioBuffer);
+                      }
+                  } catch (error) {
+                      console.error('acceptWaveform failed:', error);
+                  }
+              };
+              
+              source.connect(recognizerNode);
+              console.log(`Voice recognition initialized. Native SR: ${actualSampleRate}, Vosk SR: ${voskSampleRate}.`);
+          } else {
+              console.error('AudioWorklet not supported');
+          }
+      } catch (error) {
+          console.error('Initialization failed:', error);
+          // Error handling remains the same
+      }
+  }
+
+}
+
+async function microphonePermissions(){
+
+    var permissionStatusObject = await navigator.permissions.query({ name: 'microphone' })
+    var permissionStatus = permissionStatusObject.state
+
+    if (permissionStatus == 'denied'){
+      document.getElementById('interimTranscript').innerHTML = 'Speech-to-Text uses your browser and device microphone to convert speech to text. Ensure that the video is playing loudly enough that your device can "hear" it. It will also convert your own speech. This is an experimental feature.<br><br>Allow the Microphone permission in your browser settings and reload the page to use this feature.'
+      document.getElementById('requestVoicePermissionButton').remove()
+    } else if (permissionStatus == 'prompt'){
+      document.getElementById('interimTranscript').innerHTML = 'Speech-to-Text uses your browser and device microphone to convert speech to text. Ensure that the video is playing loudly enough that your device can "hear" it. It will also convert your own speech. This is an experimental feature.<br><br>Click "Request Microphone Permission" and allow to use this feature.'
+      document.getElementById('voiceTransToggle').disabled = true;
+      document.getElementById('voiceTransToggleText').innerText = 'Speech-to-Text Disabled'
+
+      var requestVoicePermissionButtonElement =  document.getElementById('requestVoicePermissionButton')
+      
+      requestVoicePermissionButtonElement.addEventListener('click', async () => {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          requestVoicePermissionButtonElement.remove()
+          document.getElementById('interimTranscript').innerText = 'Speech-to-Text uses your browser and device microphone to convert speech to text. Ensure that the video is playing loudly enough that your device can "hear" it. It will also convert your own speech.'
+          document.getElementById('voiceTransToggle').disabled = false;
+          document.getElementById('voiceTransToggleText').innerHTML = 'Speech-to-Text Off <span class="gray">⌥5<span>'
+        } catch (error) {
+          document.getElementById('interimTranscript').innerHTML = 'Speech-to-Text uses your browser and device microphone to convert speech to text. Ensure that the video is playing loudly enough that your device can "hear" it. It will also convert your own speech. This is an experimental feature.<br><br>Allow the Microphone permission in your browser settings and reload the page to use this feature.'
+          document.getElementById('requestVoicePermissionButton').remove()
+        }
+      })
+
+    } else {
+      document.getElementById('interimTranscript').innerText = 'Speech-to-Text uses your browser and device microphone to convert speech to text. Ensure that the video is playing loudly enough that your device can "hear" it. It will also convert your own speech. This is an experimental feature.'
+      document.getElementById('voiceTransToggle').disabled = false;
+      document.getElementById('voiceTransToggleText').innerHTML = 'Speech-to-Text Off <span class="gray">⌥5<span>'
+      var requestVoicePermissionButtonElement =  document.getElementById('requestVoicePermissionButton')
+      requestVoicePermissionButtonElement.remove()
+    }
+  
 }
 
 // Loading and Saving Notes
@@ -590,8 +861,8 @@ async function saveToLocalStorage(){
       var localStoragePayload = {}
       localStoragePayload.editorData = outputData
       localStoragePayload.lastUpdated = Math.floor(Date.now() / 1000)
-      localStoragePayload.ytVideoId = player.getVideoData().video_id
-      localStoragePayload.ytVideoTime = Math.round(player.getCurrentTime())
+      localStoragePayload.ytVideoId = player?.getVideoData()?.video_id
+      localStoragePayload.ytVideoTime = Math.round(player?.getCurrentTime())
       localStoragePayload.version = 8
       localStorage.setItem("ytnt_"+currentDocumentName, JSON.stringify(localStoragePayload));
       autoSaveElement.innerText = "Saving..."
@@ -666,3 +937,31 @@ function generateSavedNotes() {
     }
   }
 }
+
+// Settings
+
+var settingsButtonElement = document.getElementById('settingsButton')
+var offCanvasSettingsBootstrap = new bootstrap.Offcanvas(document.getElementById('offCanvasSettings'))
+settingsButtonElement.addEventListener('click', () => {
+  offCanvasSettingsBootstrap.show()
+})
+
+var asrRadios = document.querySelectorAll('input[type="radio"][name="asrRadio"]');
+asrRadios.forEach(asrRadio => {
+    asrRadio.addEventListener('change', (event) => {
+        if (event.target.checked) {
+          localStorage.setItem('LS_asrBackend',event.target.id)
+          window.location.reload()
+        }
+    });
+});
+
+var modeRadios = document.querySelectorAll('input[type="radio"][name="ytntMode"]');
+modeRadios.forEach(modeRadio => {
+    modeRadio.addEventListener('change', (event) => {
+        if (event.target.checked) {
+          localStorage.setItem('LS_ytntMode',event.target.id)
+          window.location.reload()
+        }
+    });
+});

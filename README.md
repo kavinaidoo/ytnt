@@ -18,5 +18,7 @@ Includes unmodified versions of:
 - editorjs-undo - v2.0.28 - https://github.com/kommitters/editorjs-undo
 - editorjs-html - v4.0.5 - https://github.com/pavittarx/editorjs-html
 - docx - v9.4.1 - https://github.com/dolanmiu/docx
+- vosk-browser - v0.0.8 - https://github.com/ccoreilly/vosk-browser
+- vosk-model-small-en-us-0.15 - https://alphacephei.com/vosk/models
 
 Licenses for the above are present in LICENSE.md
